@@ -57,4 +57,4 @@ docker compose up -d
 
 ## 部署
 
-详细部署指南见 [docs/deployment.md](file:///Volumes/External/workspace/bksys2/docs/deployment.md)
+详细部署指南见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
