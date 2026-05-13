@@ -1,12 +1,9 @@
 window.config = {
   routerBasename: '/ohif',
   showStudyList: false,
-  dataSources: [
-    {
-      sourceName: 'dicomweb',
-      namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
-      configuration: {
-        friendlyName: 'Orthanc DICOMweb',
+  servers: {
+    dicomWeb: [
+      {
         name: 'Orthanc',
         wadoUriRoot: '/orthanc/wado',
         qidoRoot: '/orthanc/dicom-web',
@@ -19,8 +16,7 @@ window.config = {
         supportsWildcard: true,
         omitQuotationForMultipartRequest: true,
       },
-    },
-  ],
-  defaultDataSourceName: 'dicomweb',
+    ],
+  },
   hotkeys: [],
 };
