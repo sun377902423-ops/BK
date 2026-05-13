@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './hooks/useAuth';
+import { PERMISSIONS } from './lib/permissions';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
@@ -12,6 +13,7 @@ import Users from './pages/Users';
 import Hospitals from './pages/Hospitals';
 import Reports from './pages/Reports';
 import AccessRequests from './pages/AccessRequests';
+import Roles from './pages/Roles';
 import Layout from './components/layout/Layout';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 
@@ -31,20 +33,29 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
+const AuthorizedRoute: React.FC<{ children: React.ReactNode; permissions: string[] }> = ({ children, permissions }) => {
+  const { hasAnyPermission } = useAuth();
+  if (!hasAnyPermission(...permissions)) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
 const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
-        <Route path="/patients" element={<Patients />} />
-        <Route path="/patients/:id" element={<PatientDetail />} />
-        <Route path="/studies" element={<Studies />} />
-        <Route path="/consultations" element={<Consultations />} />
-        <Route path="/users" element={<Users />} />
-        <Route path="/hospitals" element={<Hospitals />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/access-requests" element={<AccessRequests />} />
+        <Route path="/patients" element={<AuthorizedRoute permissions={[PERMISSIONS.PATIENT_LIST]}><Patients /></AuthorizedRoute>} />
+        <Route path="/patients/:id" element={<AuthorizedRoute permissions={[PERMISSIONS.PATIENT_READ]}><PatientDetail /></AuthorizedRoute>} />
+        <Route path="/studies" element={<AuthorizedRoute permissions={[PERMISSIONS.STUDY_LIST]}><Studies /></AuthorizedRoute>} />
+        <Route path="/consultations" element={<AuthorizedRoute permissions={[PERMISSIONS.CONSULTATION_LIST]}><Consultations /></AuthorizedRoute>} />
+        <Route path="/users" element={<AuthorizedRoute permissions={[PERMISSIONS.USER_LIST]}><Users /></AuthorizedRoute>} />
+        <Route path="/hospitals" element={<AuthorizedRoute permissions={[PERMISSIONS.HOSPITAL_LIST]}><Hospitals /></AuthorizedRoute>} />
+        <Route path="/reports" element={<AuthorizedRoute permissions={[PERMISSIONS.REPORT_LIST]}><Reports /></AuthorizedRoute>} />
+        <Route path="/access-requests" element={<AuthorizedRoute permissions={[PERMISSIONS.ACCESS_REQUEST_LIST]}><AccessRequests /></AuthorizedRoute>} />
+        <Route path="/roles" element={<AuthorizedRoute permissions={[PERMISSIONS.USER_ASSIGN_ROLE]}><Roles /></AuthorizedRoute>} />
       </Route>
     </Routes>
   );

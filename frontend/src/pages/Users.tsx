@@ -8,6 +8,8 @@ import Modal from '@/components/ui/Modal';
 import StatusBadge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import PermissionGuard from '@/components/ui/PermissionGuard';
+import { PERMISSIONS } from '@/lib/permissions';
 
 interface Role {
   id: number;
@@ -169,10 +171,12 @@ const Users: React.FC = () => {
       <PageHeader
         title={t('user.title')}
         action={
-          <button onClick={openCreateModal} className="btn-primary inline-flex items-center">
-            <PlusIcon className="w-4 h-4 mr-1" />
-            {t('user.addUser')}
-          </button>
+          <PermissionGuard permissions={[PERMISSIONS.USER_CREATE]}>
+            <button onClick={openCreateModal} className="btn-primary inline-flex items-center">
+              <PlusIcon className="w-4 h-4 mr-1" />
+              {t('user.addUser')}
+            </button>
+          </PermissionGuard>
         }
       />
 
@@ -206,16 +210,20 @@ const Users: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-3">
-                        <button onClick={() => openEditModal(user)} className="text-blue-600 hover:text-blue-900 inline-flex items-center">
-                          <PencilSquareIcon className="w-4 h-4 mr-1" />
-                          {t('common.edit')}
-                        </button>
-                        <button
-                          onClick={() => toggleStatusMutation.mutate(user.id)}
-                          className={`inline-flex items-center ${user.status === 'active' ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
-                        >
-                          {user.status === 'active' ? t('common.disable') : t('common.enable')}
-                        </button>
+                        <PermissionGuard permissions={[PERMISSIONS.USER_UPDATE]}>
+                          <button onClick={() => openEditModal(user)} className="text-blue-600 hover:text-blue-900 inline-flex items-center">
+                            <PencilSquareIcon className="w-4 h-4 mr-1" />
+                            {t('common.edit')}
+                          </button>
+                        </PermissionGuard>
+                        <PermissionGuard permissions={[PERMISSIONS.USER_UPDATE]}>
+                          <button
+                            onClick={() => toggleStatusMutation.mutate(user.id)}
+                            className={`inline-flex items-center ${user.status === 'active' ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
+                          >
+                            {user.status === 'active' ? t('common.disable') : t('common.enable')}
+                          </button>
+                        </PermissionGuard>
                       </div>
                     </td>
                   </tr>

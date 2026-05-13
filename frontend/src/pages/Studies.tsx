@@ -8,6 +8,8 @@ import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import EmptyState from '@/components/ui/EmptyState';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import PermissionGuard from '@/components/ui/PermissionGuard';
+import { PERMISSIONS } from '@/lib/permissions';
 
 interface Study {
   id: number;
@@ -169,13 +171,15 @@ const Studies: React.FC = () => {
       <PageHeader
         title={t('study.title')}
         action={
-          <button
-            onClick={() => setUploadModalOpen(true)}
-            className="btn-primary inline-flex items-center"
-          >
-            <CloudArrowUpIcon className="w-4 h-4 mr-1" />
-            {t('study.uploadImage')}
-          </button>
+          <PermissionGuard permissions={[PERMISSIONS.STUDY_UPLOAD]}>
+            <button
+              onClick={() => setUploadModalOpen(true)}
+              className="btn-primary inline-flex items-center"
+            >
+              <CloudArrowUpIcon className="w-4 h-4 mr-1" />
+              {t('study.uploadImage')}
+            </button>
+          </PermissionGuard>
         }
       />
 
@@ -241,22 +245,26 @@ const Studies: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{study.seriesCount || 0}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-3">
-                        <a
-                          href={`/ohif/viewer?StudyInstanceUIDs=${study.orthancStudyId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary-600 hover:text-primary-900 inline-flex items-center"
-                        >
-                          <EyeIcon className="w-4 h-4 mr-1" />
-                          {t('study.viewImage')}
-                        </a>
-                        <button
-                          onClick={() => setDeleteTarget(study)}
-                          className="text-red-600 hover:text-red-900 inline-flex items-center"
-                        >
-                          <TrashIcon className="w-4 h-4 mr-1" />
-                          {t('common.delete')}
-                        </button>
+                        <PermissionGuard permissions={[PERMISSIONS.STUDY_READ]}>
+                          <a
+                            href={`/ohif/viewer?StudyInstanceUIDs=${study.orthancStudyId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary-600 hover:text-primary-900 inline-flex items-center"
+                          >
+                            <EyeIcon className="w-4 h-4 mr-1" />
+                            {t('study.viewImage')}
+                          </a>
+                        </PermissionGuard>
+                        <PermissionGuard permissions={[PERMISSIONS.STUDY_DELETE]}>
+                          <button
+                            onClick={() => setDeleteTarget(study)}
+                            className="text-red-600 hover:text-red-900 inline-flex items-center"
+                          >
+                            <TrashIcon className="w-4 h-4 mr-1" />
+                            {t('common.delete')}
+                          </button>
+                        </PermissionGuard>
                       </div>
                     </td>
                   </tr>

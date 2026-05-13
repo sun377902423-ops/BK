@@ -7,6 +7,8 @@ import PageHeader from '@/components/ui/PageHeader';
 import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import PermissionGuard from '@/components/ui/PermissionGuard';
+import { PERMISSIONS } from '@/lib/permissions';
 
 interface Hospital {
   id: number;
@@ -105,10 +107,12 @@ const Hospitals: React.FC = () => {
       <PageHeader
         title={t('hospital.title')}
         action={
-          <button onClick={openCreateModal} className="btn-primary inline-flex items-center">
-            <PlusIcon className="w-4 h-4 mr-1" />
-            {t('hospital.addHospital')}
-          </button>
+          <PermissionGuard permissions={[PERMISSIONS.HOSPITAL_CREATE]}>
+            <button onClick={openCreateModal} className="btn-primary inline-flex items-center">
+              <PlusIcon className="w-4 h-4 mr-1" />
+              {t('hospital.addHospital')}
+            </button>
+          </PermissionGuard>
         }
       />
 
@@ -125,12 +129,14 @@ const Hospitals: React.FC = () => {
                     <h3 className="text-base font-semibold text-gray-900">{hospital.name}</h3>
                   </div>
                 </div>
-                <button
-                  onClick={() => openEditModal(hospital)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                >
-                  <PencilSquareIcon className="w-4 h-4" />
-                </button>
+                <PermissionGuard permissions={[PERMISSIONS.HOSPITAL_UPDATE]}>
+                  <button
+                    onClick={() => openEditModal(hospital)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                  >
+                    <PencilSquareIcon className="w-4 h-4" />
+                  </button>
+                </PermissionGuard>
               </div>
 
               <div className="space-y-2">

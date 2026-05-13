@@ -52,13 +52,56 @@
     "reports": "报告管理",
     "accessRequests": "访问申请",
     "users": "用户管理",
-    "hospitals": "医院管理"
+    "hospitals": "医院管理",
+    "roles": "角色权限"
   },
   "role": {
     "admin": "系统管理员",
     "doctorLocal": "本地医生",
     "doctorRemote": "远程专家",
-    "technician": "技师"
+    "technician": "技师",
+    "title": "角色权限管理",
+    "description": "管理系统角色和权限配置",
+    "create": "创建角色",
+    "edit": "编辑角色",
+    "displayName": "角色名称",
+    "permissions": "权限配置",
+    "systemRole": "系统角色",
+    "usersCount": "个用户",
+    "deleteConfirmTitle": "确认删除角色",
+    "deleteConfirmMessage": "确定要删除角色「{{name}}」吗？此操作不可撤销。"
+  },
+  "permission": {
+    "module": {
+      "user": "用户",
+      "patient": "患者",
+      "study": "影像",
+      "consultation": "会诊",
+      "report": "报告",
+      "accessRequest": "访问申请",
+      "hospital": "医院",
+      "system": "系统"
+    },
+    "action": {
+      "list": "列表",
+      "create": "创建",
+      "read": "查看",
+      "update": "编辑",
+      "delete": "删除",
+      "upload": "上传",
+      "annotate": "标注",
+      "export": "导出",
+      "join": "加入",
+      "manage": "管理",
+      "close": "关闭",
+      "submit": "提交",
+      "sign": "签署",
+      "approve": "审批",
+      "review": "审核",
+      "assignRole": "分配角色",
+      "config": "配置",
+      "audit": "审计"
+    }
   },
   "gender": {
     "male": "男",

@@ -7,6 +7,7 @@ declare module '@fastify/jwt' {
       userId: number
       username: string
       role: string
+      hospitalId: number | null
     }
   }
 }

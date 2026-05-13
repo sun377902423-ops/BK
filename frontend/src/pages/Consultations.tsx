@@ -10,11 +10,13 @@ import {
   InboxIcon,
 } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
+import { PERMISSIONS } from '@/lib/permissions';
 import PageHeader from '@/components/ui/PageHeader';
 import Modal from '@/components/ui/Modal';
 import StatusBadge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import PermissionGuard from '@/components/ui/PermissionGuard';
 
 interface Consultation {
   id: number;
@@ -144,10 +146,12 @@ const Consultations: React.FC = () => {
       <PageHeader
         title={t('consultation.title')}
         action={
-          <button onClick={() => setModalOpen(true)} className="btn-primary inline-flex items-center">
-            <PlusIcon className="w-4 h-4 mr-1" />
-            {t('consultation.newConsultation')}
-          </button>
+          <PermissionGuard permissions={[PERMISSIONS.CONSULTATION_CREATE]}>
+            <button onClick={() => setModalOpen(true)} className="btn-primary inline-flex items-center">
+              <PlusIcon className="w-4 h-4 mr-1" />
+              {t('consultation.newConsultation')}
+            </button>
+          </PermissionGuard>
         }
       />
 
@@ -201,31 +205,37 @@ const Consultations: React.FC = () => {
 
               <div className="flex items-center space-x-2 pt-3 border-t border-gray-100">
                 {consultation.status === 'CREATED' && (
-                  <button
-                    onClick={() => statusMutation.mutate({ id: consultation.id, status: 'IN_PROGRESS' })}
-                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200"
-                  >
-                    <PlayIcon className="w-3.5 h-3.5 mr-1" />
-                    {t('consultation.startConsultation')}
-                  </button>
+                  <PermissionGuard permissions={[PERMISSIONS.CONSULTATION_JOIN]}>
+                    <button
+                      onClick={() => statusMutation.mutate({ id: consultation.id, status: 'IN_PROGRESS' })}
+                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200"
+                    >
+                      <PlayIcon className="w-3.5 h-3.5 mr-1" />
+                      {t('consultation.startConsultation')}
+                    </button>
+                  </PermissionGuard>
                 )}
                 {consultation.status === 'IN_PROGRESS' && (
-                  <button
-                    onClick={() => statusMutation.mutate({ id: consultation.id, status: 'COMPLETED' })}
-                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-green-100 text-green-700 hover:bg-green-200"
-                  >
-                    <StopIcon className="w-3.5 h-3.5 mr-1" />
-                    {t('consultation.endConsultation')}
-                  </button>
+                  <PermissionGuard permissions={[PERMISSIONS.CONSULTATION_CLOSE]}>
+                    <button
+                      onClick={() => statusMutation.mutate({ id: consultation.id, status: 'COMPLETED' })}
+                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-green-100 text-green-700 hover:bg-green-200"
+                    >
+                      <StopIcon className="w-3.5 h-3.5 mr-1" />
+                      {t('consultation.endConsultation')}
+                    </button>
+                  </PermissionGuard>
                 )}
                 {(consultation.status === 'CREATED' || consultation.status === 'IN_PROGRESS') && (
-                  <button
-                    onClick={() => statusMutation.mutate({ id: consultation.id, status: 'CANCELLED' })}
-                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-red-100 text-red-700 hover:bg-red-200"
-                  >
-                    <XMarkIcon className="w-3.5 h-3.5 mr-1" />
-                    {t('consultation.cancelConsultation')}
-                  </button>
+                  <PermissionGuard permissions={[PERMISSIONS.CONSULTATION_CLOSE]}>
+                    <button
+                      onClick={() => statusMutation.mutate({ id: consultation.id, status: 'CANCELLED' })}
+                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-red-100 text-red-700 hover:bg-red-200"
+                    >
+                      <XMarkIcon className="w-3.5 h-3.5 mr-1" />
+                      {t('consultation.cancelConsultation')}
+                    </button>
+                  </PermissionGuard>
                 )}
               </div>
             </div>

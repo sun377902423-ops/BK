@@ -1,9 +1,13 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../lib/prisma.js';
+import { authorize } from '../lib/authorize.js';
+import { PERMISSIONS } from '../lib/permissions.js';
 import bcrypt from 'bcrypt';
 
 export async function userRoutes(fastify: FastifyInstance) {
-  fastify.get('/users', { preHandler: [fastify.authenticate] }, async () => {
+  fastify.get('/users', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.USER_LIST)],
+  }, async () => {
     const users = await prisma.user.findMany({
       include: { role: true, hospital: true },
       orderBy: { createdAt: 'desc' },
@@ -11,7 +15,9 @@ export async function userRoutes(fastify: FastifyInstance) {
     return users;
   });
 
-  fastify.get('/users/:id', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.get('/users/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.USER_LIST)],
+  }, async (request) => {
     const { id } = request.params as { id: string };
     const user = await prisma.user.findUnique({
       where: { id: parseInt(id) },
@@ -20,7 +26,9 @@ export async function userRoutes(fastify: FastifyInstance) {
     return user;
   });
 
-  fastify.post('/users', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.post('/users', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.USER_CREATE)],
+  }, async (request) => {
     const data = request.body as any;
     const passwordHash = await bcrypt.hash(data.password, 10);
     const user = await prisma.user.create({
@@ -38,7 +46,9 @@ export async function userRoutes(fastify: FastifyInstance) {
     return user;
   });
 
-  fastify.put('/users/:id', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.put('/users/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.USER_UPDATE)],
+  }, async (request) => {
     const { id } = request.params as { id: string };
     const data = request.body as any;
     const updateData: any = {
@@ -59,7 +69,9 @@ export async function userRoutes(fastify: FastifyInstance) {
     return user;
   });
 
-  fastify.put('/users/:id/status', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.put('/users/:id/status', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.USER_UPDATE)],
+  }, async (request) => {
     const { id } = request.params as { id: string };
     const user = await prisma.user.findUnique({
       where: { id: parseInt(id) },

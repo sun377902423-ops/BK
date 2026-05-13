@@ -1,13 +1,23 @@
 import { FastifyInstance } from 'fastify';
 import { ConsultationStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
+import { authorize } from '../lib/authorize.js';
+import { PERMISSIONS } from '../lib/permissions.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function consultationRoutes(fastify: FastifyInstance) {
-  fastify.get('/consultations', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.get('/consultations', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_LIST)],
+  }, async (request) => {
     const query = request.query as { status?: string };
+    const userRole = request.user.role;
+    const hospitalId = request.user.hospitalId;
+
     const where: any = {};
     if (query.status) where.status = query.status;
+    if (userRole !== 'ADMIN' && hospitalId) {
+      where.hospitalId = hospitalId;
+    }
 
     const consultations = await prisma.consultation.findMany({
       where,
@@ -26,7 +36,9 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     return consultations;
   });
 
-  fastify.get('/consultations/:id', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.get('/consultations/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_LIST)],
+  }, async (request) => {
     const { id } = request.params as { id: string };
     const consultation = await prisma.consultation.findUnique({
       where: { id: parseInt(id) },
@@ -46,7 +58,9 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     return consultation;
   });
 
-  fastify.post('/consultations', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.post('/consultations', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_CREATE)],
+  }, async (request) => {
     const data = request.body as {
       title: string;
       patientId: number;
@@ -79,7 +93,9 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     return consultation;
   });
 
-  fastify.put('/consultations/:id', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.put('/consultations/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_MANAGE)],
+  }, async (request) => {
     const { id } = request.params as { id: string };
     const data = request.body as { title?: string; status?: ConsultationStatus };
     const consultation = await prisma.consultation.update({
@@ -92,7 +108,9 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     return consultation;
   });
 
-  fastify.post('/consultations/:id/participants', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.post('/consultations/:id/participants', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_JOIN)],
+  }, async (request) => {
     const { id } = request.params as { id: string };
     const data = request.body as { userId: number; isHost?: boolean };
     const participant = await prisma.consultationParticipant.create({
@@ -108,7 +126,9 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     return participant;
   });
 
-  fastify.delete('/consultations/:id/participants/:userId', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.delete('/consultations/:id/participants/:userId', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_MANAGE)],
+  }, async (request) => {
     const { id, userId } = request.params as { id: string; userId: string };
     await prisma.consultationParticipant.deleteMany({
       where: {
@@ -119,7 +139,9 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     return { success: true };
   });
 
-  fastify.put('/consultations/:id/status', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.put('/consultations/:id/status', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_CLOSE)],
+  }, async (request) => {
     const { id } = request.params as { id: string };
     const data = request.body as { status: ConsultationStatus };
     const updateData: any = { status: data.status as ConsultationStatus };

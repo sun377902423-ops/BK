@@ -1,9 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../lib/prisma.js';
+import { ROLE_PERMISSIONS, type Permission } from '../lib/permissions.js';
 import bcrypt from 'bcrypt';
 
 export async function authRoutes(fastify: FastifyInstance) {
-  // 登录
   fastify.post('/auth/login', async (request, reply) => {
     const { username, password } = request.body as { username: string; password: string };
 
@@ -29,6 +29,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       userId: user.id,
       username: user.username,
       role: user.role.name,
+      hospitalId: user.hospitalId,
     });
 
     await prisma.auditLog.create({
@@ -40,6 +41,15 @@ export async function authRoutes(fastify: FastifyInstance) {
       },
     });
 
+    let permissions: Permission[] = ROLE_PERMISSIONS[user.role.name] || [];
+    if (!permissions.length && user.role.permissions) {
+      try {
+        permissions = typeof user.role.permissions === 'string'
+          ? JSON.parse(user.role.permissions)
+          : user.role.permissions;
+      } catch { /* empty */ }
+    }
+
     return {
       token,
       user: {
@@ -48,11 +58,12 @@ export async function authRoutes(fastify: FastifyInstance) {
         realName: user.realName,
         email: user.email,
         role: user.role.name,
+        hospitalId: user.hospitalId,
+        permissions,
       },
     };
   });
 
-  // 获取当前用户信息
   fastify.get('/auth/me', { preHandler: [fastify.authenticate] }, async (request) => {
     const userId = request.user.userId;
     const user = await prisma.user.findUnique({
@@ -60,13 +71,23 @@ export async function authRoutes(fastify: FastifyInstance) {
       include: { role: true },
     });
 
+    let permissions: Permission[] = ROLE_PERMISSIONS[user?.role?.name || ''] || [];
+    if (!permissions.length && user?.role?.permissions) {
+      try {
+        permissions = typeof user.role.permissions === 'string'
+          ? JSON.parse(user.role.permissions)
+          : user.role.permissions;
+      } catch { /* empty */ }
+    }
+
     return {
       id: user?.id,
       username: user?.username,
       realName: user?.realName,
       email: user?.email,
       role: user?.role.name,
-      permissions: user?.role.permissions,
+      hospitalId: user?.hospitalId,
+      permissions,
     };
   });
 }

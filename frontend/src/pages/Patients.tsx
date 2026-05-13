@@ -18,6 +18,8 @@ import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import EmptyState from '@/components/ui/EmptyState';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import PermissionGuard from '@/components/ui/PermissionGuard';
+import { PERMISSIONS } from '@/lib/permissions';
 
 interface Patient {
   id: number;
@@ -268,10 +270,12 @@ const Patients: React.FC = () => {
                 </span>
               )}
             </button>
-            <button onClick={openCreateModal} className="btn-primary inline-flex items-center">
-              <PlusIcon className="w-4 h-4 mr-1" />
-              {t('patient.addPatient')}
-            </button>
+            <PermissionGuard permissions={[PERMISSIONS.PATIENT_CREATE]}>
+              <button onClick={openCreateModal} className="btn-primary inline-flex items-center">
+                <PlusIcon className="w-4 h-4 mr-1" />
+                {t('patient.addPatient')}
+              </button>
+            </PermissionGuard>
           </div>
         }
       />
@@ -333,14 +337,18 @@ const Patients: React.FC = () => {
                           <EyeIcon className="w-4 h-4 mr-1" />
                           {t('patient.viewDetail')}
                         </button>
-                        <button onClick={() => openEditModal(patient)} className="text-blue-600 hover:text-blue-900 inline-flex items-center">
-                          <PencilSquareIcon className="w-4 h-4 mr-1" />
-                          {t('common.edit')}
-                        </button>
-                        <button onClick={() => setDeleteTarget(patient)} className="text-red-600 hover:text-red-900 inline-flex items-center">
-                          <TrashIcon className="w-4 h-4 mr-1" />
-                          {t('common.delete')}
-                        </button>
+                        <PermissionGuard permissions={[PERMISSIONS.PATIENT_UPDATE]}>
+                          <button onClick={() => openEditModal(patient)} className="text-blue-600 hover:text-blue-900 inline-flex items-center">
+                            <PencilSquareIcon className="w-4 h-4 mr-1" />
+                            {t('common.edit')}
+                          </button>
+                        </PermissionGuard>
+                        <PermissionGuard permissions={[PERMISSIONS.PATIENT_DELETE]}>
+                          <button onClick={() => setDeleteTarget(patient)} className="text-red-600 hover:text-red-900 inline-flex items-center">
+                            <TrashIcon className="w-4 h-4 mr-1" />
+                            {t('common.delete')}
+                          </button>
+                        </PermissionGuard>
                       </div>
                     </td>
                   </tr>

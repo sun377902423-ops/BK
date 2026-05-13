@@ -17,6 +17,8 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import EmptyState from '@/components/ui/EmptyState';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import PermissionGuard from '@/components/ui/PermissionGuard';
+import { PERMISSIONS } from '@/lib/permissions';
 
 interface Report {
   id: number;
@@ -224,10 +226,12 @@ const Reports: React.FC = () => {
       <PageHeader
         title={t('report.title')}
         action={
-          <button onClick={() => setCreateOpen(true)} className="btn-primary inline-flex items-center">
-            <PlusIcon className="w-4 h-4 mr-1" />
-            {t('report.newReport')}
-          </button>
+          <PermissionGuard permissions={[PERMISSIONS.REPORT_CREATE]}>
+            <button onClick={() => setCreateOpen(true)} className="btn-primary inline-flex items-center">
+              <PlusIcon className="w-4 h-4 mr-1" />
+              {t('report.newReport')}
+            </button>
+          </PermissionGuard>
         }
       />
 
@@ -287,42 +291,50 @@ const Reports: React.FC = () => {
                           {t('report.view')}
                         </button>
                         {(report.status === 'DRAFT' || report.status === 'SUBMITTED') && (
-                          <button
-                            onClick={() => openEditModal(report)}
-                            className="text-blue-600 hover:text-blue-900 inline-flex items-center"
-                          >
-                            <PencilSquareIcon className="w-4 h-4 mr-1" />
-                            {t('report.edit')}
-                          </button>
+                          <PermissionGuard permissions={[PERMISSIONS.REPORT_UPDATE]}>
+                            <button
+                              onClick={() => openEditModal(report)}
+                              className="text-blue-600 hover:text-blue-900 inline-flex items-center"
+                            >
+                              <PencilSquareIcon className="w-4 h-4 mr-1" />
+                              {t('report.edit')}
+                            </button>
+                          </PermissionGuard>
                         )}
                         {report.status === 'DRAFT' && (
-                          <button
-                            onClick={() => submitMutation.mutate(report.id)}
-                            disabled={submitMutation.isPending}
-                            className="text-amber-600 hover:text-amber-900 inline-flex items-center disabled:opacity-50"
-                          >
-                            <PaperAirplaneIcon className="w-4 h-4 mr-1" />
-                            {t('report.submitReport')}
-                          </button>
+                          <PermissionGuard permissions={[PERMISSIONS.REPORT_SUBMIT]}>
+                            <button
+                              onClick={() => submitMutation.mutate(report.id)}
+                              disabled={submitMutation.isPending}
+                              className="text-amber-600 hover:text-amber-900 inline-flex items-center disabled:opacity-50"
+                            >
+                              <PaperAirplaneIcon className="w-4 h-4 mr-1" />
+                              {t('report.submitReport')}
+                            </button>
+                          </PermissionGuard>
                         )}
                         {report.status === 'SUBMITTED' && (
-                          <button
-                            onClick={() => signMutation.mutate(report.id)}
-                            disabled={signMutation.isPending}
-                            className="text-green-600 hover:text-green-900 inline-flex items-center disabled:opacity-50"
-                          >
-                            <CheckBadgeIcon className="w-4 h-4 mr-1" />
-                            {t('report.sign')}
-                          </button>
+                          <PermissionGuard permissions={[PERMISSIONS.REPORT_SIGN]}>
+                            <button
+                              onClick={() => signMutation.mutate(report.id)}
+                              disabled={signMutation.isPending}
+                              className="text-green-600 hover:text-green-900 inline-flex items-center disabled:opacity-50"
+                            >
+                              <CheckBadgeIcon className="w-4 h-4 mr-1" />
+                              {t('report.sign')}
+                            </button>
+                          </PermissionGuard>
                         )}
                         {report.status === 'DRAFT' && (
-                          <button
-                            onClick={() => setDeleteTarget(report)}
-                            className="text-red-600 hover:text-red-900 inline-flex items-center"
-                          >
-                            <TrashIcon className="w-4 h-4 mr-1" />
-                            {t('common.delete')}
-                          </button>
+                          <PermissionGuard permissions={[PERMISSIONS.REPORT_DELETE]}>
+                            <button
+                              onClick={() => setDeleteTarget(report)}
+                              className="text-red-600 hover:text-red-900 inline-flex items-center"
+                            >
+                              <TrashIcon className="w-4 h-4 mr-1" />
+                              {t('common.delete')}
+                            </button>
+                          </PermissionGuard>
                         )}
                       </div>
                     </td>

@@ -1,12 +1,23 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../lib/prisma.js';
+import { authorize } from '../lib/authorize.js';
+import { PERMISSIONS } from '../lib/permissions.js';
 
 export async function reportRoutes(fastify: FastifyInstance) {
-  fastify.get('/reports', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.get('/reports', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.REPORT_LIST)],
+  }, async (request) => {
     const query = request.query as { status?: string; patientId?: string };
+    const userRole = request.user.role;
+    const hospitalId = request.user.hospitalId;
+
     const where: any = {};
     if (query.status) where.status = query.status;
     if (query.patientId) where.patientId = parseInt(query.patientId);
+
+    if (userRole !== 'ADMIN' && hospitalId) {
+      where.patient = { hospitalId };
+    }
 
     const reports = await prisma.report.findMany({
       where,
@@ -21,7 +32,9 @@ export async function reportRoutes(fastify: FastifyInstance) {
     return reports;
   });
 
-  fastify.get('/reports/:id', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.get('/reports/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.REPORT_LIST)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const report = await prisma.report.findUnique({
       where: { id: parseInt(id) },
@@ -37,7 +50,9 @@ export async function reportRoutes(fastify: FastifyInstance) {
     return report;
   });
 
-  fastify.post('/reports', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.post('/reports', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.REPORT_CREATE)],
+  }, async (request) => {
     const data = request.body as any;
 
     const report = await prisma.report.create({
@@ -57,7 +72,9 @@ export async function reportRoutes(fastify: FastifyInstance) {
     return report;
   });
 
-  fastify.put('/reports/:id', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.put('/reports/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.REPORT_UPDATE)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const data = request.body as any;
 
@@ -85,9 +102,11 @@ export async function reportRoutes(fastify: FastifyInstance) {
     return updated;
   });
 
-  fastify.post('/reports/:id/sign', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.post('/reports/:id/sign', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.REPORT_SIGN)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const userId = (request as any).user.userId;
+    const userId = request.user.userId;
 
     const report = await prisma.report.findUnique({ where: { id: parseInt(id) } });
     if (!report) return reply.status(404).send({ error: '报告不存在' });
@@ -110,7 +129,9 @@ export async function reportRoutes(fastify: FastifyInstance) {
     return updated;
   });
 
-  fastify.post('/reports/:id/submit', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.post('/reports/:id/submit', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.REPORT_SUBMIT)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
 
     const report = await prisma.report.findUnique({ where: { id: parseInt(id) } });
@@ -124,7 +145,9 @@ export async function reportRoutes(fastify: FastifyInstance) {
     return updated;
   });
 
-  fastify.delete('/reports/:id', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.delete('/reports/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.REPORT_DELETE)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const report = await prisma.report.findUnique({ where: { id: parseInt(id) } });
     if (!report) return reply.status(404).send({ error: '报告不存在' });

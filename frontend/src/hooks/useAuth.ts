@@ -8,6 +8,7 @@ interface User {
   email: string;
   role?: { id: number; name: string } | string;
   hospitalId?: number;
+  permissions?: string[];
 }
 
 interface AuthState {
@@ -16,6 +17,8 @@ interface AuthState {
   isLoading: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+  hasPermission: (permission: string) => boolean;
+  hasAnyPermission: (...permissions: string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -52,12 +55,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     navigate('/login');
   }, [navigate]);
 
+  const hasPermission = useCallback((permission: string) => {
+    if (!user) return false;
+    const roleName = typeof user.role === 'string' ? user.role : user.role?.name;
+    if (roleName === 'ADMIN') return true;
+    return user.permissions?.includes(permission) ?? false;
+  }, [user]);
+
+  const hasAnyPermission = useCallback((...permissions: string[]) => {
+    if (!user) return false;
+    const roleName = typeof user.role === 'string' ? user.role : user.role?.name;
+    if (roleName === 'ADMIN') return true;
+    return permissions.some(p => user.permissions?.includes(p) ?? false);
+  }, [user]);
+
   const value: AuthState = {
     user,
     isAuthenticated: !!user && !!localStorage.getItem('token'),
     isLoading,
     login,
     logout,
+    hasPermission,
+    hasAnyPermission,
   };
 
   return createElement(AuthContext.Provider, { value }, children);

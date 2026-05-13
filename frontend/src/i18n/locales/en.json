@@ -52,13 +52,56 @@
     "reports": "Reports",
     "accessRequests": "Access Requests",
     "users": "Users",
-    "hospitals": "Hospitals"
+    "hospitals": "Hospitals",
+    "roles": "Roles & Permissions"
   },
   "role": {
-    "admin": "Administrator",
+    "admin": "System Administrator",
     "doctorLocal": "Local Doctor",
     "doctorRemote": "Remote Specialist",
-    "technician": "Technician"
+    "technician": "Technician",
+    "title": "Role & Permission Management",
+    "description": "Manage system roles and permission configurations",
+    "create": "Create Role",
+    "edit": "Edit Role",
+    "displayName": "Role Name",
+    "permissions": "Permissions",
+    "systemRole": "System Role",
+    "usersCount": "users",
+    "deleteConfirmTitle": "Confirm Delete Role",
+    "deleteConfirmMessage": "Are you sure you want to delete role \"{{name}}\"? This action cannot be undone."
+  },
+  "permission": {
+    "module": {
+      "user": "User",
+      "patient": "Patient",
+      "study": "Study",
+      "consultation": "Consultation",
+      "report": "Report",
+      "accessRequest": "Access Request",
+      "hospital": "Hospital",
+      "system": "System"
+    },
+    "action": {
+      "list": "List",
+      "create": "Create",
+      "read": "Read",
+      "update": "Update",
+      "delete": "Delete",
+      "upload": "Upload",
+      "annotate": "Annotate",
+      "export": "Export",
+      "join": "Join",
+      "manage": "Manage",
+      "close": "Close",
+      "submit": "Submit",
+      "sign": "Sign",
+      "approve": "Approve",
+      "review": "Review",
+      "assignRole": "Assign Role",
+      "config": "Config",
+      "audit": "Audit"
+    }
   },
   "gender": {
     "male": "Male",

@@ -1,18 +1,28 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../lib/prisma.js';
+import { authorize } from '../lib/authorize.js';
+import { PERMISSIONS } from '../lib/permissions.js';
 
 const ORTHANC_URL = process.env.ORTHANC_URL || 'http://orthanc:8042';
 
 export async function studyRoutes(fastify: FastifyInstance) {
-  fastify.get('/studies', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.get('/studies', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.STUDY_LIST)],
+  }, async (request) => {
     const query = request.query as {
       patientId?: string;
       modality?: string;
     };
+    const userRole = request.user.role;
+    const hospitalId = request.user.hospitalId;
 
     const where: any = {};
     if (query.patientId) where.patientId = parseInt(query.patientId);
     if (query.modality) where.modality = query.modality;
+
+    if (userRole !== 'ADMIN' && hospitalId) {
+      where.hospitalId = hospitalId;
+    }
 
     const studies = await prisma.study.findMany({
       where,
@@ -26,7 +36,9 @@ export async function studyRoutes(fastify: FastifyInstance) {
     return studies;
   });
 
-  fastify.get('/studies/:id', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.get('/studies/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.STUDY_READ)],
+  }, async (request) => {
     const { id } = request.params as { id: string };
     const study = await prisma.study.findUnique({
       where: { id: parseInt(id) },
@@ -41,7 +53,9 @@ export async function studyRoutes(fastify: FastifyInstance) {
     return study;
   });
 
-  fastify.post('/studies', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.post('/studies', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.STUDY_UPLOAD)],
+  }, async (request) => {
     const data = request.body as any;
     const study = await prisma.study.create({
       data: {
@@ -59,7 +73,9 @@ export async function studyRoutes(fastify: FastifyInstance) {
     return study;
   });
 
-  fastify.put('/studies/:id', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.put('/studies/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.STUDY_UPLOAD)],
+  }, async (request) => {
     const { id } = request.params as { id: string };
     const data = request.body as any;
     const study = await prisma.study.update({
@@ -77,7 +93,9 @@ export async function studyRoutes(fastify: FastifyInstance) {
     return study;
   });
 
-  fastify.delete('/studies/:id', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.delete('/studies/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.STUDY_DELETE)],
+  }, async (request) => {
     const { id } = request.params as { id: string };
     await prisma.study.delete({
       where: { id: parseInt(id) },
@@ -85,7 +103,9 @@ export async function studyRoutes(fastify: FastifyInstance) {
     return { success: true };
   });
 
-  fastify.post('/studies/upload', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.post('/studies/upload', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.STUDY_UPLOAD)],
+  }, async (request, reply) => {
     const data = await request.file();
     if (!data) {
       return reply.status(400).send({ error: '请选择要上传的文件' });

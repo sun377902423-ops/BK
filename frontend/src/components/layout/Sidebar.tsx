@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../hooks/useAuth';
+import { PERMISSIONS } from '../../lib/permissions';
 import {
   HomeIcon,
   UsersIcon,
@@ -10,22 +12,29 @@ import {
   BuildingOffice2Icon,
   DocumentTextIcon,
   KeyIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 
 const Sidebar: React.FC = () => {
   const { t } = useTranslation();
   const location = useLocation();
+  const { hasAnyPermission } = useAuth();
 
-  const menuItems = [
-    { name: t('nav.dashboard'), path: '/', icon: HomeIcon },
-    { name: t('nav.patients'), path: '/patients', icon: UsersIcon },
-    { name: t('nav.studies'), path: '/studies', icon: ClipboardDocumentListIcon },
-    { name: t('nav.consultations'), path: '/consultations', icon: VideoCameraIcon },
-    { name: t('nav.reports'), path: '/reports', icon: DocumentTextIcon },
-    { name: t('nav.accessRequests'), path: '/access-requests', icon: KeyIcon },
-    { name: t('nav.users'), path: '/users', icon: UserGroupIcon },
-    { name: t('nav.hospitals'), path: '/hospitals', icon: BuildingOffice2Icon },
+  const allMenuItems = [
+    { name: t('nav.dashboard'), path: '/', icon: HomeIcon, permissions: [] },
+    { name: t('nav.patients'), path: '/patients', icon: UsersIcon, permissions: [PERMISSIONS.PATIENT_LIST] },
+    { name: t('nav.studies'), path: '/studies', icon: ClipboardDocumentListIcon, permissions: [PERMISSIONS.STUDY_LIST] },
+    { name: t('nav.consultations'), path: '/consultations', icon: VideoCameraIcon, permissions: [PERMISSIONS.CONSULTATION_LIST] },
+    { name: t('nav.reports'), path: '/reports', icon: DocumentTextIcon, permissions: [PERMISSIONS.REPORT_LIST] },
+    { name: t('nav.accessRequests'), path: '/access-requests', icon: KeyIcon, permissions: [PERMISSIONS.ACCESS_REQUEST_LIST] },
+    { name: t('nav.roles'), path: '/roles', icon: ShieldCheckIcon, permissions: [PERMISSIONS.USER_ASSIGN_ROLE] },
+    { name: t('nav.users'), path: '/users', icon: UserGroupIcon, permissions: [PERMISSIONS.USER_LIST] },
+    { name: t('nav.hospitals'), path: '/hospitals', icon: BuildingOffice2Icon, permissions: [PERMISSIONS.HOSPITAL_LIST] },
   ];
+
+  const menuItems = allMenuItems.filter(
+    (item) => item.permissions.length === 0 || hasAnyPermission(...item.permissions)
+  );
 
   return (
     <div className="w-64 bg-slate-900 text-white flex flex-col">

@@ -52,13 +52,56 @@
     "reports": "Rapports",
     "accessRequests": "Demandes d'accès",
     "users": "Utilisateurs",
-    "hospitals": "Hôpitaux"
+    "hospitals": "Hôpitaux",
+    "roles": "Rôles et Permissions"
   },
   "role": {
-    "admin": "Administrateur",
-    "doctorLocal": "Médecin local",
-    "doctorRemote": "Spécialiste à distance",
-    "technician": "Technicien"
+    "admin": "Administrateur Système",
+    "doctorLocal": "Médecin Local",
+    "doctorRemote": "Spécialiste à Distance",
+    "technician": "Technicien",
+    "title": "Gestion des Rôles et Permissions",
+    "description": "Gérer les rôles système et les configurations de permissions",
+    "create": "Créer un Rôle",
+    "edit": "Modifier le Rôle",
+    "displayName": "Nom du Rôle",
+    "permissions": "Permissions",
+    "systemRole": "Rôle Système",
+    "usersCount": "utilisateurs",
+    "deleteConfirmTitle": "Confirmer la Suppression du Rôle",
+    "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer le rôle \"{{name}}\" ? Cette action est irréversible."
+  },
+  "permission": {
+    "module": {
+      "user": "Utilisateur",
+      "patient": "Patient",
+      "study": "Examen",
+      "consultation": "Consultation",
+      "report": "Rapport",
+      "accessRequest": "Demande d'Accès",
+      "hospital": "Hôpital",
+      "system": "Système"
+    },
+    "action": {
+      "list": "Liste",
+      "create": "Créer",
+      "read": "Lire",
+      "update": "Modifier",
+      "delete": "Supprimer",
+      "upload": "Télécharger",
+      "annotate": "Annoter",
+      "export": "Exporter",
+      "join": "Rejoindre",
+      "manage": "Gérer",
+      "close": "Fermer",
+      "submit": "Soumettre",
+      "sign": "Signer",
+      "approve": "Approuver",
+      "review": "Examiner",
+      "assignRole": "Attribuer un Rôle",
+      "config": "Configurer",
+      "audit": "Audit"
+    }
   },
   "gender": {
     "male": "Homme",

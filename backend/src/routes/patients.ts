@@ -1,11 +1,29 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../lib/prisma.js';
+import { authorize } from '../lib/authorize.js';
+import { PERMISSIONS } from '../lib/permissions.js';
 import bcrypt from 'bcrypt';
 
+function buildPatientWhere(userId: number, roleName: string, hospitalId: number | null) {
+  if (roleName === 'ADMIN') return {};
+  const conditions: any[] = [
+    { createdById: userId },
+    { createdById: null },
+    { grantedAccesses: { some: { userId } } },
+  ];
+  if (hospitalId) {
+    conditions.push({ hospitalId });
+  }
+  return { OR: conditions };
+}
+
 export async function patientRoutes(fastify: FastifyInstance) {
-  fastify.get('/patients', { preHandler: [fastify.authenticate] }, async (request) => {
-    const userId = (request as any).user.userId;
-    const userRole = (request as any).user.role;
+  fastify.get('/patients', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.PATIENT_LIST)],
+  }, async (request) => {
+    const userId = request.user.userId;
+    const userRole = request.user.role;
+    const hospitalId = request.user.hospitalId;
 
     if (userRole === 'ADMIN') {
       const patients = await prisma.patient.findMany({
@@ -16,23 +34,19 @@ export async function patientRoutes(fastify: FastifyInstance) {
     }
 
     const patients = await prisma.patient.findMany({
-      where: {
-        OR: [
-          { createdById: userId },
-          { createdById: null },
-          { grantedAccesses: { some: { userId } } },
-        ],
-      },
+      where: buildPatientWhere(userId, userRole, hospitalId),
       include: { hospital: true, createdBy: { select: { id: true, realName: true, username: true } } },
       orderBy: { createdAt: 'desc' },
     });
     return patients;
   });
 
-  fastify.get('/patients/:id', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.get('/patients/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.PATIENT_READ)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const userId = (request as any).user.userId;
-    const userRole = (request as any).user.role;
+    const userId = request.user.userId;
+    const userRole = request.user.role;
 
     const patient = await prisma.patient.findUnique({
       where: { id: parseInt(id) },
@@ -66,9 +80,11 @@ export async function patientRoutes(fastify: FastifyInstance) {
     return patient;
   });
 
-  fastify.post('/patients', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.post('/patients', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.PATIENT_CREATE)],
+  }, async (request) => {
     const data = request.body as any;
-    const userId = (request as any).user.userId;
+    const userId = request.user.userId;
 
     const patient = await prisma.patient.create({
       data: {
@@ -88,11 +104,13 @@ export async function patientRoutes(fastify: FastifyInstance) {
     return patient;
   });
 
-  fastify.put('/patients/:id', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.put('/patients/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.PATIENT_UPDATE)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const data = request.body as any;
-    const userId = (request as any).user.userId;
-    const userRole = (request as any).user.role;
+    const userId = request.user.userId;
+    const userRole = request.user.role;
 
     const patient = await prisma.patient.findUnique({ where: { id: parseInt(id) } });
     if (!patient) return reply.status(404).send({ error: '患者不存在' });
@@ -121,10 +139,12 @@ export async function patientRoutes(fastify: FastifyInstance) {
     return updated;
   });
 
-  fastify.delete('/patients/:id', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.delete('/patients/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.PATIENT_DELETE)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const userId = (request as any).user.userId;
-    const userRole = (request as any).user.role;
+    const userId = request.user.userId;
+    const userRole = request.user.role;
 
     const patient = await prisma.patient.findUnique({ where: { id: parseInt(id) } });
     if (!patient) return reply.status(404).send({ error: '患者不存在' });
@@ -136,10 +156,12 @@ export async function patientRoutes(fastify: FastifyInstance) {
     return { success: true };
   });
 
-  fastify.post('/patients/:id/access-request', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.post('/patients/:id/access-request', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.ACCESS_REQUEST_CREATE)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const data = request.body as any;
-    const userId = (request as any).user.userId;
+    const userId = request.user.userId;
 
     const patient = await prisma.patient.findUnique({ where: { id: parseInt(id) } });
     if (!patient) return reply.status(404).send({ error: '患者不存在' });
@@ -160,9 +182,11 @@ export async function patientRoutes(fastify: FastifyInstance) {
     return accessRequest;
   });
 
-  fastify.get('/patients/access-requests', { preHandler: [fastify.authenticate] }, async (request) => {
-    const userId = (request as any).user.userId;
-    const userRole = (request as any).user.role;
+  fastify.get('/patients/access-requests', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.ACCESS_REQUEST_LIST)],
+  }, async (request) => {
+    const userId = request.user.userId;
+    const userRole = request.user.role;
     const query = request.query as { type?: string };
 
     let where: any = {};
@@ -184,16 +208,18 @@ export async function patientRoutes(fastify: FastifyInstance) {
     return requests;
   });
 
-  fastify.put('/patients/access-requests/:id/approve', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.put('/patients/access-requests/:id/approve', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.ACCESS_REQUEST_REVIEW)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const userId = (request as any).user.userId;
+    const userId = request.user.userId;
 
     const accessRequest = await prisma.patientAccessRequest.findUnique({
       where: { id: parseInt(id) },
       include: { patient: true },
     });
     if (!accessRequest) return reply.status(404).send({ error: '申请不存在' });
-    if (accessRequest.patient.createdById !== userId && (request as any).user.role !== 'ADMIN') {
+    if (accessRequest.patient.createdById !== userId && request.user.role !== 'ADMIN') {
       return reply.status(403).send({ error: '无权审批此申请' });
     }
     if (accessRequest.status !== 'PENDING') return reply.status(400).send({ error: '申请已处理' });
@@ -212,17 +238,18 @@ export async function patientRoutes(fastify: FastifyInstance) {
     return updated;
   });
 
-  fastify.put('/patients/access-requests/:id/reject', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.put('/patients/access-requests/:id/reject', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.ACCESS_REQUEST_REVIEW)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const data = request.body as any;
-    const userId = (request as any).user.userId;
+    const userId = request.user.userId;
 
     const accessRequest = await prisma.patientAccessRequest.findUnique({
       where: { id: parseInt(id) },
       include: { patient: true },
     });
     if (!accessRequest) return reply.status(404).send({ error: '申请不存在' });
-    if (accessRequest.patient.createdById !== userId && (request as any).user.role !== 'ADMIN') {
+    if (accessRequest.patient.createdById !== userId && request.user.role !== 'ADMIN') {
       return reply.status(403).send({ error: '无权审批此申请' });
     }
     if (accessRequest.status !== 'PENDING') return reply.status(400).send({ error: '申请已处理' });
@@ -234,10 +261,12 @@ export async function patientRoutes(fastify: FastifyInstance) {
     return updated;
   });
 
-  fastify.post('/patients/:id/verify-password', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.post('/patients/:id/verify-password', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.PATIENT_READ)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const data = request.body as any;
-    const userId = (request as any).user.userId;
+    const userId = request.user.userId;
 
     const patient = await prisma.patient.findUnique({ where: { id: parseInt(id) } });
     if (!patient) return reply.status(404).send({ error: '患者不存在' });
@@ -255,14 +284,16 @@ export async function patientRoutes(fastify: FastifyInstance) {
     return { success: true, message: '密码验证通过' };
   });
 
-  fastify.put('/patients/:id/case-password', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  fastify.put('/patients/:id/case-password', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.PATIENT_UPDATE)],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const data = request.body as any;
-    const userId = (request as any).user.userId;
+    const userId = request.user.userId;
 
     const patient = await prisma.patient.findUnique({ where: { id: parseInt(id) } });
     if (!patient) return reply.status(404).send({ error: '患者不存在' });
-    if (patient.createdById !== userId && (request as any).user.role !== 'ADMIN') {
+    if (patient.createdById !== userId && request.user.role !== 'ADMIN') {
       return reply.status(403).send({ error: '无权设置病例密码' });
     }
 

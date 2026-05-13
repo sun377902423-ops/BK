@@ -1,15 +1,21 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../lib/prisma.js';
+import { authorize } from '../lib/authorize.js';
+import { PERMISSIONS } from '../lib/permissions.js';
 
 export async function hospitalRoutes(fastify: FastifyInstance) {
-  fastify.get('/hospitals', { preHandler: [fastify.authenticate] }, async () => {
+  fastify.get('/hospitals', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.HOSPITAL_LIST)],
+  }, async () => {
     const hospitals = await prisma.hospital.findMany({
       orderBy: { createdAt: 'desc' },
     });
     return hospitals;
   });
 
-  fastify.get('/hospitals/:id', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.get('/hospitals/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.HOSPITAL_LIST)],
+  }, async (request) => {
     const { id } = request.params as { id: string };
     const hospital = await prisma.hospital.findUnique({
       where: { id: parseInt(id) },
@@ -25,7 +31,9 @@ export async function hospitalRoutes(fastify: FastifyInstance) {
     return hospital;
   });
 
-  fastify.post('/hospitals', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.post('/hospitals', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.HOSPITAL_CREATE)],
+  }, async (request) => {
     const data = request.body as any;
     const hospital = await prisma.hospital.create({
       data: {
@@ -40,7 +48,9 @@ export async function hospitalRoutes(fastify: FastifyInstance) {
     return hospital;
   });
 
-  fastify.put('/hospitals/:id', { preHandler: [fastify.authenticate] }, async (request) => {
+  fastify.put('/hospitals/:id', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.HOSPITAL_UPDATE)],
+  }, async (request) => {
     const { id } = request.params as { id: string };
     const data = request.body as any;
     const hospital = await prisma.hospital.update({

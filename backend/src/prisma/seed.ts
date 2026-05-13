@@ -1,67 +1,52 @@
 import { PrismaClient, RoleName, AuditAction } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { ROLE_PERMISSIONS } from '../lib/permissions.js';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('开始初始化数据库...');
 
-  // 创建角色
   const adminRole = await prisma.role.upsert({
     where: { name: RoleName.ADMIN },
-    update: {},
+    update: { permissions: JSON.stringify(ROLE_PERMISSIONS.ADMIN) },
     create: {
       name: RoleName.ADMIN,
       displayName: '系统管理员',
-      permissions: JSON.stringify([
-        'user:create', 'user:read', 'user:update', 'user:delete',
-        'patient:create', 'patient:read', 'patient:update', 'patient:delete',
-        'study:read', 'consultation:create', 'consultation:read', 'consultation:update',
-        'report:create', 'report:read', 'report:update', 'report:sign',
-        'audit:read', 'system:manage'
-      ]),
+      permissions: JSON.stringify(ROLE_PERMISSIONS.ADMIN),
       isSystem: true,
     },
   });
 
   const localDoctorRole = await prisma.role.upsert({
     where: { name: RoleName.DOCTOR_LOCAL },
-    update: {},
+    update: { permissions: JSON.stringify(ROLE_PERMISSIONS.DOCTOR_LOCAL) },
     create: {
       name: RoleName.DOCTOR_LOCAL,
       displayName: '本地医生',
-      permissions: JSON.stringify([
-        'patient:read', 'patient:update', 'study:read',
-        'consultation:create', 'consultation:read', 'consultation:update',
-        'report:create', 'report:read', 'report:update'
-      ]),
+      permissions: JSON.stringify(ROLE_PERMISSIONS.DOCTOR_LOCAL),
       isSystem: true,
     },
   });
 
   const remoteDoctorRole = await prisma.role.upsert({
     where: { name: RoleName.DOCTOR_REMOTE },
-    update: {},
+    update: { permissions: JSON.stringify(ROLE_PERMISSIONS.DOCTOR_REMOTE) },
     create: {
       name: RoleName.DOCTOR_REMOTE,
       displayName: '远程专家',
-      permissions: JSON.stringify([
-        'patient:read', 'study:read', 'consultation:read', 'consultation:update',
-        'report:read', 'report:update', 'report:sign'
-      ]),
+      permissions: JSON.stringify(ROLE_PERMISSIONS.DOCTOR_REMOTE),
       isSystem: true,
     },
   });
 
   const technicianRole = await prisma.role.upsert({
     where: { name: RoleName.TECHNICIAN },
-    update: {},
+    update: { permissions: JSON.stringify(ROLE_PERMISSIONS.TECHNICIAN) },
     create: {
       name: RoleName.TECHNICIAN,
       displayName: '技师',
-      permissions: JSON.stringify([
-        'patient:create', 'patient:read', 'patient:update', 'study:read'
-      ]),
+      permissions: JSON.stringify(ROLE_PERMISSIONS.TECHNICIAN),
       isSystem: true,
     },
   });
