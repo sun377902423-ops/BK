@@ -87,13 +87,15 @@ services:
       - backend
 
   ohif-viewer:
-    image: ohif/viewer:latest
+    image: ohif/viewer:v3.8.1
     container_name: bksys-ohif
     restart: unless-stopped
     ports:
       - "3000:80"
     volumes:
       - ./ohif-app-config.js:/usr/share/nginx/html/app-config.js:ro
+    environment:
+      - APP_CONFIG=
 
   nginx:
     image: nginx:1.27-alpine

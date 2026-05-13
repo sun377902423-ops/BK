@@ -1,5 +1,8 @@
 window.config = {
   routerBasename: '/ohif',
+  extensions: [],
+  modes: [],
+  showStudyList: false,
   servers: {
     dicomWeb: [
       {
@@ -13,7 +16,18 @@ window.config = {
         enableStudyLazyLoad: true,
         supportsFuzzyMatching: true,
         supportsWildcard: true,
+        omitQuotationForMultipartRequest: true,
       },
     ],
+  },
+  defaultDataSourceName: 'Orthanc',
+  hotkeys: [],
+  ui: {
+    viewportCorners: {
+      left: ['PatientID'],
+      right: ['StudyDate'],
+      bottomLeft: ['StudyDescription'],
+      bottomRight: ['Modality'],
+    },
   },
 };
