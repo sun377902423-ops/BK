@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   UserGroupIcon,
   UserIcon,
@@ -42,6 +43,7 @@ interface PendingData {
 }
 
 const Dashboard: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['dashboard', 'stats'],
     queryFn: async () => {
@@ -69,33 +71,33 @@ const Dashboard: React.FC = () => {
   if (statsLoading) return <LoadingSpinner />;
 
   const statCards = [
-    { label: '总用户数', value: stats?.userCount || 0, icon: UserGroupIcon, borderColor: 'border-l-blue-500', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },
-    { label: '患者数', value: stats?.patientCount || 0, icon: UserIcon, borderColor: 'border-l-green-500', bgColor: 'bg-green-50', iconColor: 'text-green-600' },
-    { label: '影像检查', value: stats?.studyCount || 0, icon: ClipboardDocumentListIcon, borderColor: 'border-l-purple-500', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' },
-    { label: '会诊次数', value: stats?.consultationCount || 0, icon: VideoCameraIcon, borderColor: 'border-l-orange-500', bgColor: 'bg-orange-50', iconColor: 'text-orange-600' },
+    { label: t('dashboard.totalUsers'), value: stats?.userCount || 0, icon: UserGroupIcon, borderColor: 'border-l-blue-500', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },
+    { label: t('dashboard.patientCount'), value: stats?.patientCount || 0, icon: UserIcon, borderColor: 'border-l-green-500', bgColor: 'bg-green-50', iconColor: 'text-green-600' },
+    { label: t('dashboard.studyCount'), value: stats?.studyCount || 0, icon: ClipboardDocumentListIcon, borderColor: 'border-l-purple-500', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' },
+    { label: t('dashboard.consultationCount'), value: stats?.consultationCount || 0, icon: VideoCameraIcon, borderColor: 'border-l-orange-500', bgColor: 'bg-orange-50', iconColor: 'text-orange-600' },
   ];
 
   const formatTime = (time: string) => {
     const date = new Date(time);
-    return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleString(i18n.language, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">仪表盘</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
         <div className="flex space-x-3">
           <Link to="/patients" className="btn-primary inline-flex items-center">
             <PlusIcon className="w-4 h-4 mr-1" />
-            添加患者
+            {t('dashboard.addPatient')}
           </Link>
           <Link to="/consultations" className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md font-medium hover:bg-purple-700 transition-colors">
             <VideoCameraIcon className="w-4 h-4 mr-1" />
-            新建会诊
+            {t('dashboard.newConsultation')}
           </Link>
           <Link to="/reports" className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md font-medium hover:bg-gray-700 transition-colors">
             <DocumentTextIcon className="w-4 h-4 mr-1" />
-            查看报告
+            {t('dashboard.viewReports')}
           </Link>
         </div>
       </div>
@@ -118,7 +120,7 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">最近活动</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.recentActivities')}</h3>
           {activitiesLoading ? (
             <LoadingSpinner size="sm" />
           ) : activities && activities.length > 0 ? (
@@ -141,19 +143,19 @@ const Dashboard: React.FC = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-400 text-sm py-4">暂无活动记录</p>
+            <p className="text-gray-400 text-sm py-4">{t('dashboard.noActivities')}</p>
           )}
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">待处理任务</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.pendingTasks')}</h3>
           {pendingLoading ? (
             <LoadingSpinner size="sm" />
           ) : pending ? (
             <div className="space-y-4">
               {pending.pendingConsultations && pending.pendingConsultations.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">待处理会诊</h4>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">{t('dashboard.pendingConsultations')}</h4>
                   {pending.pendingConsultations.map((item) => (
                     <Link
                       key={item.id}
@@ -177,7 +179,7 @@ const Dashboard: React.FC = () => {
               )}
               {pending.draftReports && pending.draftReports.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">草稿报告</h4>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">{t('dashboard.draftReports')}</h4>
                   {pending.draftReports.map((item) => (
                     <Link
                       key={item.id}
@@ -187,7 +189,7 @@ const Dashboard: React.FC = () => {
                       <div className="flex items-center space-x-3">
                         <DocumentTextIcon className="w-5 h-5 text-gray-600" />
                         <div>
-                          <p className="text-sm font-medium text-gray-900">报告 #{item.id}</p>
+                          <p className="text-sm font-medium text-gray-900">{t('dashboard.reportLabel')} #{item.id}</p>
                           <p className="text-xs text-gray-500">{item.patient?.name} · {formatTime(item.createdAt)}</p>
                         </div>
                       </div>
@@ -197,11 +199,11 @@ const Dashboard: React.FC = () => {
                 </div>
               )}
               {!pending.pendingConsultations?.length && !pending.draftReports?.length && (
-                <p className="text-gray-400 text-sm py-4">暂无待处理任务</p>
+                <p className="text-gray-400 text-sm py-4">{t('dashboard.noPendingTasks')}</p>
               )}
             </div>
           ) : (
-            <p className="text-gray-400 text-sm py-4">暂无待处理任务</p>
+            <p className="text-gray-400 text-sm py-4">{t('dashboard.noPendingTasks')}</p>
           )}
         </div>
       </div>

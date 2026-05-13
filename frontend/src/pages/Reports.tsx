@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   EyeIcon,
@@ -56,14 +57,6 @@ interface ReportContent {
   recommendations: string;
 }
 
-const statusTabs = [
-  { label: '全部', value: '' },
-  { label: '草稿', value: 'DRAFT' },
-  { label: '已提交', value: 'SUBMITTED' },
-  { label: '已批准', value: 'APPROVED' },
-  { label: '已归档', value: 'ARCHIVED' },
-];
-
 const emptyContent: ReportContent = { findings: '', impression: '', recommendations: '' };
 
 const parseContent = (content: Record<string, unknown> | string): ReportContent => {
@@ -84,6 +77,7 @@ const parseContent = (content: Record<string, unknown> | string): ReportContent 
 };
 
 const Reports: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('');
   const [viewReport, setViewReport] = useState<Report | null>(null);
@@ -97,6 +91,14 @@ const Reports: React.FC = () => {
   });
   const [createContent, setCreateContent] = useState<ReportContent>(emptyContent);
   const [deleteTarget, setDeleteTarget] = useState<Report | null>(null);
+
+  const statusTabs = [
+    { label: t('report.all'), value: '' },
+    { label: t('report.draft'), value: 'DRAFT' },
+    { label: t('report.submitted'), value: 'SUBMITTED' },
+    { label: t('report.approved'), value: 'APPROVED' },
+    { label: t('report.archived'), value: 'ARCHIVED' },
+  ];
 
   const { data: reports, isLoading } = useQuery<Report[]>({
     queryKey: ['reports', statusFilter],
@@ -220,11 +222,11 @@ const Reports: React.FC = () => {
   return (
     <div>
       <PageHeader
-        title="报告管理"
+        title={t('report.title')}
         action={
           <button onClick={() => setCreateOpen(true)} className="btn-primary inline-flex items-center">
             <PlusIcon className="w-4 h-4 mr-1" />
-            新建报告
+            {t('report.newReport')}
           </button>
         }
       />
@@ -253,14 +255,14 @@ const Reports: React.FC = () => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">报告ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">患者</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">关联会诊</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">检查类型</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">签署人</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('report.reportId')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('report.patient')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('report.relatedConsultation')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('report.modality')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('report.status')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('report.createdAt')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('report.signedBy')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -272,7 +274,7 @@ const Reports: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{report.study?.modality || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm"><StatusBadge status={report.status} type="report" /></td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(report.createdAt).toLocaleDateString('zh-CN')}
+                      {new Date(report.createdAt).toLocaleDateString(i18n.language)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{report.signedBy?.realName || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -282,7 +284,7 @@ const Reports: React.FC = () => {
                           className="text-primary-600 hover:text-primary-900 inline-flex items-center"
                         >
                           <EyeIcon className="w-4 h-4 mr-1" />
-                          查看
+                          {t('report.view')}
                         </button>
                         {(report.status === 'DRAFT' || report.status === 'SUBMITTED') && (
                           <button
@@ -290,7 +292,7 @@ const Reports: React.FC = () => {
                             className="text-blue-600 hover:text-blue-900 inline-flex items-center"
                           >
                             <PencilSquareIcon className="w-4 h-4 mr-1" />
-                            编辑
+                            {t('report.edit')}
                           </button>
                         )}
                         {report.status === 'DRAFT' && (
@@ -300,7 +302,7 @@ const Reports: React.FC = () => {
                             className="text-amber-600 hover:text-amber-900 inline-flex items-center disabled:opacity-50"
                           >
                             <PaperAirplaneIcon className="w-4 h-4 mr-1" />
-                            提交
+                            {t('report.submitReport')}
                           </button>
                         )}
                         {report.status === 'SUBMITTED' && (
@@ -310,7 +312,7 @@ const Reports: React.FC = () => {
                             className="text-green-600 hover:text-green-900 inline-flex items-center disabled:opacity-50"
                           >
                             <CheckBadgeIcon className="w-4 h-4 mr-1" />
-                            签署
+                            {t('report.sign')}
                           </button>
                         )}
                         {report.status === 'DRAFT' && (
@@ -319,7 +321,7 @@ const Reports: React.FC = () => {
                             className="text-red-600 hover:text-red-900 inline-flex items-center"
                           >
                             <TrashIcon className="w-4 h-4 mr-1" />
-                            删除
+                            {t('common.delete')}
                           </button>
                         )}
                       </div>
@@ -331,25 +333,25 @@ const Reports: React.FC = () => {
           </div>
         </div>
       ) : (
-        <EmptyState icon={<InboxIcon className="w-16 h-16" />} title="暂无报告数据" description="点击上方按钮新建报告" />
+        <EmptyState icon={<InboxIcon className="w-16 h-16" />} title={t('report.noData')} description={t('report.createFirst')} />
       )}
 
       <Modal
         isOpen={createOpen}
         onClose={() => { setCreateOpen(false); setCreateForm({ patientId: '', consultationId: '', studyId: '' }); setCreateContent(emptyContent); }}
-        title="新建报告"
+        title={t('report.newReport')}
         size="lg"
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">选择患者</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.selectPatient')}</label>
             <select
               value={createForm.patientId}
               onChange={(e) => setCreateForm({ ...createForm, patientId: e.target.value, consultationId: '', studyId: '' })}
               className="input"
               required
             >
-              <option value="">请选择患者</option>
+              <option value="">{t('report.selectPatientPlaceholder')}</option>
               {patients?.map((p) => (
                 <option key={p.id} value={p.id}>{p.name} ({p.patientId})</option>
               ))}
@@ -357,13 +359,13 @@ const Reports: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">关联会诊（可选）</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.relatedConsultationOptional')}</label>
             <select
               value={createForm.consultationId}
               onChange={(e) => setCreateForm({ ...createForm, consultationId: e.target.value })}
               className="input"
             >
-              <option value="">不关联会诊</option>
+              <option value="">{t('report.noRelatedConsultation')}</option>
               {filteredConsultations?.map((c) => (
                 <option key={c.id} value={c.id}>{c.title}</option>
               ))}
@@ -371,13 +373,13 @@ const Reports: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">关联检查（可选）</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.relatedStudyOptional')}</label>
             <select
               value={createForm.studyId}
               onChange={(e) => setCreateForm({ ...createForm, studyId: e.target.value })}
               className="input"
             >
-              <option value="">不关联检查</option>
+              <option value="">{t('report.noRelatedStudy')}</option>
               {filteredStudies?.map((s) => (
                 <option key={s.id} value={s.id}>{s.orthancStudyId} - {s.modality}</option>
               ))}
@@ -385,9 +387,9 @@ const Reports: React.FC = () => {
           </div>
 
           <div className="border-t border-gray-200 pt-4 space-y-4">
-            <h3 className="text-sm font-medium text-gray-700">报告内容</h3>
+            <h3 className="text-sm font-medium text-gray-700">{t('report.reportContent')}</h3>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">检查所见</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.findings')}</label>
               <textarea
                 value={createContent.findings}
                 onChange={(e) => setCreateContent({ ...createContent, findings: e.target.value })}
@@ -396,7 +398,7 @@ const Reports: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">诊断意见</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.impression')}</label>
               <textarea
                 value={createContent.impression}
                 onChange={(e) => setCreateContent({ ...createContent, impression: e.target.value })}
@@ -405,7 +407,7 @@ const Reports: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">建议</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.recommendations')}</label>
               <textarea
                 value={createContent.recommendations}
                 onChange={(e) => setCreateContent({ ...createContent, recommendations: e.target.value })}
@@ -421,10 +423,10 @@ const Reports: React.FC = () => {
               onClick={() => { setCreateOpen(false); setCreateForm({ patientId: '', consultationId: '', studyId: '' }); setCreateContent(emptyContent); }}
               className="btn-secondary"
             >
-              取消
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={createMutation.isPending} className="btn-primary disabled:opacity-50">
-              {createMutation.isPending ? '创建中...' : '创建'}
+              {createMutation.isPending ? t('common.creating') : t('common.create')}
             </button>
           </div>
         </form>
@@ -433,7 +435,7 @@ const Reports: React.FC = () => {
       <Modal
         isOpen={!!viewReport}
         onClose={() => setViewReport(null)}
-        title={`报告详情 - RPT-${viewReport?.id}`}
+        title={`${t('report.reportDetail')} - RPT-${viewReport?.id}`}
         size="lg"
       >
         {viewReport && (() => {
@@ -442,47 +444,47 @@ const Reports: React.FC = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">患者</p>
+                  <p className="text-sm text-gray-500">{t('report.patient')}</p>
                   <p className="text-base font-medium text-gray-900">{viewReport.patient?.name || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">关联会诊</p>
+                  <p className="text-sm text-gray-500">{t('report.relatedConsultation')}</p>
                   <p className="text-base font-medium text-gray-900">{viewReport.consultation?.title || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">检查类型</p>
+                  <p className="text-sm text-gray-500">{t('report.modality')}</p>
                   <p className="text-base font-medium text-gray-900">{viewReport.study?.modality || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">状态</p>
+                  <p className="text-sm text-gray-500">{t('report.status')}</p>
                   <StatusBadge status={viewReport.status} type="report" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">签署人</p>
+                  <p className="text-sm text-gray-500">{t('report.signedBy')}</p>
                   <p className="text-base font-medium text-gray-900">{viewReport.signedBy?.realName || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">创建时间</p>
-                  <p className="text-base font-medium text-gray-900">{new Date(viewReport.createdAt).toLocaleDateString('zh-CN')}</p>
+                  <p className="text-sm text-gray-500">{t('report.createdAt')}</p>
+                  <p className="text-base font-medium text-gray-900">{new Date(viewReport.createdAt).toLocaleDateString(i18n.language)}</p>
                 </div>
               </div>
               <div className="border-t border-gray-200 pt-4 space-y-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-1">检查所见</p>
+                  <p className="text-sm font-medium text-gray-700 mb-1">{t('report.findings')}</p>
                   <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap">
-                    {content.findings || '暂无内容'}
+                    {content.findings || t('report.noContent')}
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-1">诊断意见</p>
+                  <p className="text-sm font-medium text-gray-700 mb-1">{t('report.impression')}</p>
                   <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap">
-                    {content.impression || '暂无内容'}
+                    {content.impression || t('report.noContent')}
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-1">建议</p>
+                  <p className="text-sm font-medium text-gray-700 mb-1">{t('report.recommendations')}</p>
                   <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap">
-                    {content.recommendations || '暂无内容'}
+                    {content.recommendations || t('report.noContent')}
                   </div>
                 </div>
               </div>
@@ -494,12 +496,12 @@ const Reports: React.FC = () => {
       <Modal
         isOpen={!!editReport}
         onClose={() => setEditReport(null)}
-        title={`编辑报告 - RPT-${editReport?.id}`}
+        title={`${t('report.editReport')} - RPT-${editReport?.id}`}
         size="lg"
       >
         <form onSubmit={handleEditSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">检查所见</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.findings')}</label>
             <textarea
               value={editContent.findings}
               onChange={(e) => setEditContent({ ...editContent, findings: e.target.value })}
@@ -508,7 +510,7 @@ const Reports: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">诊断意见</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.impression')}</label>
             <textarea
               value={editContent.impression}
               onChange={(e) => setEditContent({ ...editContent, impression: e.target.value })}
@@ -517,7 +519,7 @@ const Reports: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">建议</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.recommendations')}</label>
             <textarea
               value={editContent.recommendations}
               onChange={(e) => setEditContent({ ...editContent, recommendations: e.target.value })}
@@ -526,9 +528,9 @@ const Reports: React.FC = () => {
             />
           </div>
           <div className="flex justify-end space-x-3 pt-4 border-t">
-            <button type="button" onClick={() => setEditReport(null)} className="btn-secondary">取消</button>
+            <button type="button" onClick={() => setEditReport(null)} className="btn-secondary">{t('common.cancel')}</button>
             <button type="submit" disabled={updateMutation.isPending} className="btn-primary disabled:opacity-50">
-              {updateMutation.isPending ? '保存中...' : '保存'}
+              {updateMutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>
@@ -538,9 +540,9 @@ const Reports: React.FC = () => {
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
-        title="确认删除"
-        message={`确定要删除报告「RPT-${deleteTarget?.id}」吗？此操作不可撤销。`}
-        confirmText="删除"
+        title={t('report.deleteConfirmTitle')}
+        message={t('report.deleteConfirmMessage', { id: deleteTarget?.id })}
+        confirmText={t('common.delete')}
         variant="danger"
       />
     </div>

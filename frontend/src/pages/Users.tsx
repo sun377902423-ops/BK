@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, PencilSquareIcon, InboxIcon } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import PageHeader from '@/components/ui/PageHeader';
 import Modal from '@/components/ui/Modal';
@@ -31,13 +32,6 @@ interface Hospital {
   name: string;
 }
 
-const roleNameMap: Record<string, string> = {
-  ADMIN: '系统管理员',
-  DOCTOR_LOCAL: '本地医生',
-  DOCTOR_REMOTE: '远程专家',
-  TECHNICIAN: '技师',
-};
-
 const emptyForm = {
   username: '',
   password: '',
@@ -49,6 +43,13 @@ const emptyForm = {
 };
 
 const Users: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const roleNameMap: Record<string, string> = {
+    ADMIN: t('role.admin'),
+    DOCTOR_LOCAL: t('role.doctorLocal'),
+    DOCTOR_REMOTE: t('role.doctorRemote'),
+    TECHNICIAN: t('role.technician'),
+  };
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -166,11 +167,11 @@ const Users: React.FC = () => {
   return (
     <div>
       <PageHeader
-        title="用户管理"
+        title={t('user.title')}
         action={
           <button onClick={openCreateModal} className="btn-primary inline-flex items-center">
             <PlusIcon className="w-4 h-4 mr-1" />
-            添加用户
+            {t('user.addUser')}
           </button>
         }
       />
@@ -181,12 +182,12 @@ const Users: React.FC = () => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户名</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">邮箱</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('user.username')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('user.realName')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('user.email')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('user.role')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('user.status')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -207,13 +208,13 @@ const Users: React.FC = () => {
                       <div className="flex items-center space-x-3">
                         <button onClick={() => openEditModal(user)} className="text-blue-600 hover:text-blue-900 inline-flex items-center">
                           <PencilSquareIcon className="w-4 h-4 mr-1" />
-                          编辑
+                          {t('common.edit')}
                         </button>
                         <button
                           onClick={() => toggleStatusMutation.mutate(user.id)}
                           className={`inline-flex items-center ${user.status === 'active' ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
                         >
-                          {user.status === 'active' ? '禁用' : '启用'}
+                          {user.status === 'active' ? t('common.disable') : t('common.enable')}
                         </button>
                       </div>
                     </td>
@@ -224,18 +225,18 @@ const Users: React.FC = () => {
           </div>
         </div>
       ) : (
-        <EmptyState icon={<InboxIcon className="w-16 h-16" />} title="暂无用户数据" description="点击上方按钮添加第一个用户" />
+        <EmptyState icon={<InboxIcon className="w-16 h-16" />} title={t('user.noData')} description={t('user.addFirst')} />
       )}
 
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editingUser ? '编辑用户' : '添加用户'}
+        title={editingUser ? t('user.editUser') : t('user.addUser')}
         size="md"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('user.username')}</label>
             <input
               type="text"
               value={form.username}
@@ -247,7 +248,7 @@ const Users: React.FC = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              密码{editingUser && '（留空则不修改）'}
+              {t('user.password')}{editingUser && t('user.passwordHint')}
             </label>
             <input
               type="password"
@@ -258,7 +259,7 @@ const Users: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('user.realName')}</label>
             <input
               type="text"
               value={form.realName}
@@ -268,7 +269,7 @@ const Users: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('user.email')}</label>
             <input
               type="email"
               value={form.email}
@@ -277,7 +278,7 @@ const Users: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">电话</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('user.phone')}</label>
             <input
               type="text"
               value={form.phone}
@@ -286,48 +287,48 @@ const Users: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">角色</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('user.role')}</label>
             <select
               value={form.roleId}
               onChange={(e) => setForm({ ...form, roleId: e.target.value })}
               className="input"
               required
             >
-              <option value="">请选择角色</option>
+              <option value="">{t('user.selectRole')}</option>
               {uniqueRoles.map((role) => (
                 <option key={role.id} value={role.id}>{roleNameMap[role.name] || role.name}</option>
               ))}
               {uniqueRoles.length === 0 && (
                 <>
-                  <option value="1">系统管理员</option>
-                  <option value="2">本地医生</option>
-                  <option value="3">远程专家</option>
-                  <option value="4">技师</option>
+                  <option value="1">{t('role.admin')}</option>
+                  <option value="2">{t('role.doctorLocal')}</option>
+                  <option value="3">{t('role.doctorRemote')}</option>
+                  <option value="4">{t('role.technician')}</option>
                 </>
               )}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">所属医院</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('user.selectHospital')}</label>
             <select
               value={form.hospitalId}
               onChange={(e) => setForm({ ...form, hospitalId: e.target.value })}
               className="input"
             >
-              <option value="">请选择医院</option>
+              <option value="">{t('user.selectHospitalPlaceholder')}</option>
               {hospitals?.map((h) => (
                 <option key={h.id} value={h.id}>{h.name}</option>
               ))}
             </select>
           </div>
           <div className="flex justify-end space-x-3 pt-4 border-t">
-            <button type="button" onClick={closeModal} className="btn-secondary">取消</button>
+            <button type="button" onClick={closeModal} className="btn-secondary">{t('common.cancel')}</button>
             <button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
               className="btn-primary disabled:opacity-50"
             >
-              {(createMutation.isPending || updateMutation.isPending) ? '提交中...' : (editingUser ? '保存' : '创建')}
+              {(createMutation.isPending || updateMutation.isPending) ? t('common.submitting') : (editingUser ? t('common.save') : t('common.create'))}
             </button>
           </div>
         </form>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { HeartIcon, UserIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -11,6 +12,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t } = useTranslation();
 
   const loginMutation = useMutation({
     mutationFn: async () => {
@@ -22,7 +24,7 @@ const Login: React.FC = () => {
       navigate('/');
     },
     onError: () => {
-      setError('用户名或密码错误');
+      setError(t('auth.loginError'));
     },
   });
 
@@ -39,14 +41,14 @@ const Login: React.FC = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-2xl mb-4">
             <HeartIcon className="w-9 h-9 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">BKSYS 远程会诊系统</h1>
-          <p className="text-blue-100">安全可靠的远程医疗协作平台</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('app.name')}</h1>
+          <p className="text-blue-100">{t('app.subtitle')}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('auth.username')}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <UserIcon className="h-5 w-5 text-gray-400" />
@@ -56,14 +58,14 @@ const Login: React.FC = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="input pl-10"
-                  placeholder="请输入用户名"
+                  placeholder={t('auth.usernamePlaceholder')}
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('auth.password')}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <LockClosedIcon className="h-5 w-5 text-gray-400" />
@@ -73,7 +75,7 @@ const Login: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input pl-10"
-                  placeholder="请输入密码"
+                  placeholder={t('auth.passwordPlaceholder')}
                   required
                 />
               </div>
@@ -96,16 +98,16 @@ const Login: React.FC = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  登录中...
+                  {t('auth.logging')}
                 </span>
               ) : (
-                '登 录'
+                t('auth.login')
               )}
             </button>
           </form>
 
           <div className="mt-6 pt-6 border-t border-gray-100 text-center">
-            <p className="text-xs text-gray-400">测试账号: admin / admin123</p>
+            <p className="text-xs text-gray-400">{t('auth.testAccount')}</p>
           </div>
         </div>
       </div>

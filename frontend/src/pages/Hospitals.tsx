@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PlusIcon, PencilSquareIcon, BuildingOffice2Icon, MapPinIcon, PhoneIcon, InboxIcon } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
@@ -27,6 +28,7 @@ const emptyForm = {
 };
 
 const Hospitals: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingHospital, setEditingHospital] = useState<Hospital | null>(null);
@@ -101,11 +103,11 @@ const Hospitals: React.FC = () => {
   return (
     <div>
       <PageHeader
-        title="医院管理"
+        title={t('hospital.title')}
         action={
           <button onClick={openCreateModal} className="btn-primary inline-flex items-center">
             <PlusIcon className="w-4 h-4 mr-1" />
-            添加医院
+            {t('hospital.addHospital')}
           </button>
         }
       />
@@ -155,7 +157,7 @@ const Hospitals: React.FC = () => {
               {hospital.isEdgeSite && (
                 <div className="mt-4 pt-3 border-t border-gray-100">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    边缘站点
+                    {t('hospital.edgeSite')}
                   </span>
                 </div>
               )}
@@ -163,18 +165,18 @@ const Hospitals: React.FC = () => {
           ))}
         </div>
       ) : (
-        <EmptyState icon={<InboxIcon className="w-16 h-16" />} title="暂无医院数据" description="点击上方按钮添加第一个医院" />
+        <EmptyState icon={<InboxIcon className="w-16 h-16" />} title={t('hospital.noData')} description={t('hospital.addFirst')} />
       )}
 
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editingHospital ? '编辑医院' : '添加医院'}
+        title={editingHospital ? t('hospital.editHospital') : t('hospital.addHospital')}
         size="md"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">医院名称</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('hospital.name')}</label>
             <input
               type="text"
               value={form.name}
@@ -185,7 +187,7 @@ const Hospitals: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">国家</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('hospital.country')}</label>
               <input
                 type="text"
                 value={form.country}
@@ -194,7 +196,7 @@ const Hospitals: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">城市</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('hospital.city')}</label>
               <input
                 type="text"
                 value={form.city}
@@ -204,7 +206,7 @@ const Hospitals: React.FC = () => {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">地址</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('hospital.address')}</label>
             <input
               type="text"
               value={form.address}
@@ -213,7 +215,7 @@ const Hospitals: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">电话</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('hospital.phone')}</label>
             <input
               type="text"
               value={form.phone}
@@ -229,16 +231,16 @@ const Hospitals: React.FC = () => {
               className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
               id="isEdgeSite"
             />
-            <label htmlFor="isEdgeSite" className="ml-2 text-sm text-gray-700">边缘站点</label>
+            <label htmlFor="isEdgeSite" className="ml-2 text-sm text-gray-700">{t('hospital.edgeSite')}</label>
           </div>
           <div className="flex justify-end space-x-3 pt-4 border-t">
-            <button type="button" onClick={closeModal} className="btn-secondary">取消</button>
+            <button type="button" onClick={closeModal} className="btn-secondary">{t('common.cancel')}</button>
             <button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
               className="btn-primary disabled:opacity-50"
             >
-              {(createMutation.isPending || updateMutation.isPending) ? '提交中...' : (editingHospital ? '保存' : '创建')}
+              {(createMutation.isPending || updateMutation.isPending) ? t('common.submitting') : (editingHospital ? t('common.save') : t('common.create'))}
             </button>
           </div>
         </form>

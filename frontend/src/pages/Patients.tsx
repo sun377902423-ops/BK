@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -50,12 +51,6 @@ interface AccessRequest {
   createdAt: string;
 }
 
-const genderMap: Record<string, string> = {
-  MALE: '男',
-  FEMALE: '女',
-  OTHER: '其他',
-};
-
 const emptyForm = {
   patientId: '',
   name: '',
@@ -69,6 +64,7 @@ const emptyForm = {
 };
 
 const Patients: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -81,6 +77,12 @@ const Patients: React.FC = () => {
   const [accessReason, setAccessReason] = useState('');
   const [casePassword, setCasePassword] = useState('');
   const [accessRequestsOpen, setAccessRequestsOpen] = useState(false);
+
+  const genderMap: Record<string, string> = {
+    MALE: t('gender.male'),
+    FEMALE: t('gender.female'),
+    OTHER: t('gender.other'),
+  };
 
   const { data: patients, isLoading } = useQuery<Patient[]>({
     queryKey: ['patients'],
@@ -251,7 +253,7 @@ const Patients: React.FC = () => {
   return (
     <div>
       <PageHeader
-        title="患者管理"
+        title={t('patient.title')}
         action={
           <div className="flex items-center space-x-3">
             <button
@@ -259,7 +261,7 @@ const Patients: React.FC = () => {
               className="btn-secondary inline-flex items-center relative"
             >
               <KeyIcon className="w-4 h-4 mr-1" />
-              访问申请
+              {t('patient.accessRequests')}
               {pendingRequests.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                   {pendingRequests.length}
@@ -268,7 +270,7 @@ const Patients: React.FC = () => {
             </button>
             <button onClick={openCreateModal} className="btn-primary inline-flex items-center">
               <PlusIcon className="w-4 h-4 mr-1" />
-              添加患者
+              {t('patient.addPatient')}
             </button>
           </div>
         }
@@ -282,7 +284,7 @@ const Patients: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="input pl-10"
-            placeholder="搜索患者姓名或ID..."
+            placeholder={t('patient.searchPlaceholder')}
           />
         </div>
       </div>
@@ -293,14 +295,14 @@ const Patients: React.FC = () => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">患者ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">性别</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">电话</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">所属医院</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">建档人</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('patient.patientId')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('patient.name')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('patient.gender')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('patient.phone')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('patient.hospital')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('patient.creator')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('patient.createdAt')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -320,7 +322,7 @@ const Patients: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{patient.hospital?.name || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{patient.createdBy?.realName || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(patient.createdAt).toLocaleDateString('zh-CN')}
+                      {new Date(patient.createdAt).toLocaleDateString(i18n.language)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-3">
@@ -329,15 +331,15 @@ const Patients: React.FC = () => {
                           className="text-primary-600 hover:text-primary-900 inline-flex items-center"
                         >
                           <EyeIcon className="w-4 h-4 mr-1" />
-                          查看详情
+                          {t('patient.viewDetail')}
                         </button>
                         <button onClick={() => openEditModal(patient)} className="text-blue-600 hover:text-blue-900 inline-flex items-center">
                           <PencilSquareIcon className="w-4 h-4 mr-1" />
-                          编辑
+                          {t('common.edit')}
                         </button>
                         <button onClick={() => setDeleteTarget(patient)} className="text-red-600 hover:text-red-900 inline-flex items-center">
                           <TrashIcon className="w-4 h-4 mr-1" />
-                          删除
+                          {t('common.delete')}
                         </button>
                       </div>
                     </td>
@@ -348,19 +350,19 @@ const Patients: React.FC = () => {
           </div>
         </div>
       ) : (
-        <EmptyState icon={<InboxIcon className="w-16 h-16" />} title="暂无患者数据" description="点击上方按钮添加第一个患者" />
+        <EmptyState icon={<InboxIcon className="w-16 h-16" />} title={t('patient.noData')} description={t('patient.addFirst')} />
       )}
 
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editingPatient ? '编辑患者' : '添加患者'}
+        title={editingPatient ? t('patient.editPatient') : t('patient.addPatient')}
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">患者ID</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.patientId')}</label>
               <input
                 type="text"
                 value={form.patientId}
@@ -370,7 +372,7 @@ const Patients: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.name')}</label>
               <input
                 type="text"
                 value={form.name}
@@ -380,19 +382,19 @@ const Patients: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">性别</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.gender')}</label>
               <select
                 value={form.gender}
                 onChange={(e) => setForm({ ...form, gender: e.target.value })}
                 className="input"
               >
-                <option value="MALE">男</option>
-                <option value="FEMALE">女</option>
-                <option value="OTHER">其他</option>
+                <option value="MALE">{t('gender.male')}</option>
+                <option value="FEMALE">{t('gender.female')}</option>
+                <option value="OTHER">{t('gender.other')}</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">出生日期</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.birthDate')}</label>
               <input
                 type="date"
                 value={form.birthDate}
@@ -401,7 +403,7 @@ const Patients: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">电话</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.phone')}</label>
               <input
                 type="text"
                 value={form.phone}
@@ -410,7 +412,7 @@ const Patients: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.email')}</label>
               <input
                 type="email"
                 value={form.email}
@@ -419,7 +421,7 @@ const Patients: React.FC = () => {
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">地址</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.address')}</label>
               <input
                 type="text"
                 value={form.address}
@@ -428,13 +430,13 @@ const Patients: React.FC = () => {
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">所属医院</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.hospital')}</label>
               <select
                 value={form.hospitalId}
                 onChange={(e) => setForm({ ...form, hospitalId: e.target.value })}
                 className="input"
               >
-                <option value="">请选择医院</option>
+                <option value="">{t('patient.selectHospital')}</option>
                 {hospitals?.map((h) => (
                   <option key={h.id} value={h.id}>{h.name}</option>
                 ))}
@@ -442,7 +444,7 @@ const Patients: React.FC = () => {
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                病例密码（可选）
+                {t('patient.casePassword')}
               </label>
               <div className="relative">
                 <input
@@ -450,7 +452,7 @@ const Patients: React.FC = () => {
                   value={form.casePassword}
                   onChange={(e) => setForm({ ...form, casePassword: e.target.value })}
                   className="input pr-10"
-                  placeholder="设置后需密码才能查看该患者"
+                  placeholder={t('patient.casePasswordPlaceholder')}
                 />
                 <LockClosedIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
@@ -458,14 +460,14 @@ const Patients: React.FC = () => {
           </div>
           <div className="flex justify-end space-x-3 pt-4 border-t">
             <button type="button" onClick={closeModal} className="btn-secondary">
-              取消
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
               className="btn-primary disabled:opacity-50"
             >
-              {(createMutation.isPending || updateMutation.isPending) ? '提交中...' : (editingPatient ? '保存' : '创建')}
+              {(createMutation.isPending || updateMutation.isPending) ? t('common.submitting') : (editingPatient ? t('common.save') : t('common.create'))}
             </button>
           </div>
         </form>
@@ -474,13 +476,13 @@ const Patients: React.FC = () => {
       <Modal
         isOpen={!!accessDialog}
         onClose={() => setAccessDialog(null)}
-        title={`访问受限 - ${accessDialog?.name || ''}`}
+        title={`${t('patient.accessRestricted')} - ${accessDialog?.name || ''}`}
         size="md"
       >
         {accessDialog && (
           <div className="space-y-4">
             <p className="text-sm text-gray-600">
-              您没有权限访问患者「{accessDialog.name}」的信息，请选择以下方式获取访问权限：
+              {t('patient.accessDeniedMessage', { name: accessDialog.name })}
             </p>
             <div className="flex space-x-2 border-b border-gray-200">
               <button
@@ -491,7 +493,7 @@ const Patients: React.FC = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                申请访问
+                {t('patient.applyAccess')}
               </button>
               <button
                 onClick={() => setAccessTab('password')}
@@ -501,7 +503,7 @@ const Patients: React.FC = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                输入病例密码
+                {t('patient.enterCasePassword')}
               </button>
             </div>
 
@@ -514,24 +516,24 @@ const Patients: React.FC = () => {
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">申请理由</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.applyReason')}</label>
                   <textarea
                     value={accessReason}
                     onChange={(e) => setAccessReason(e.target.value)}
                     className="input min-h-[100px]"
                     rows={4}
                     required
-                    placeholder="请说明您需要访问该患者信息的原因..."
+                    placeholder={t('patient.applyReasonPlaceholder')}
                   />
                 </div>
                 <div className="flex justify-end space-x-3">
-                  <button type="button" onClick={() => setAccessDialog(null)} className="btn-secondary">取消</button>
+                  <button type="button" onClick={() => setAccessDialog(null)} className="btn-secondary">{t('common.cancel')}</button>
                   <button
                     type="submit"
                     disabled={accessRequestMutation.isPending}
                     className="btn-primary disabled:opacity-50"
                   >
-                    {accessRequestMutation.isPending ? '提交中...' : '提交申请'}
+                    {accessRequestMutation.isPending ? t('common.submitting') : t('patient.submitApplication')}
                   </button>
                 </div>
               </form>
@@ -546,24 +548,24 @@ const Patients: React.FC = () => {
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">病例密码</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.casePasswordLabel')}</label>
                   <input
                     type="password"
                     value={casePassword}
                     onChange={(e) => setCasePassword(e.target.value)}
                     className="input"
                     required
-                    placeholder="请输入该患者的病例密码"
+                    placeholder={t('patient.casePasswordInputPlaceholder')}
                   />
                 </div>
                 <div className="flex justify-end space-x-3">
-                  <button type="button" onClick={() => setAccessDialog(null)} className="btn-secondary">取消</button>
+                  <button type="button" onClick={() => setAccessDialog(null)} className="btn-secondary">{t('common.cancel')}</button>
                   <button
                     type="submit"
                     disabled={verifyPasswordMutation.isPending}
                     className="btn-primary disabled:opacity-50"
                   >
-                    {verifyPasswordMutation.isPending ? '验证中...' : '验证'}
+                    {verifyPasswordMutation.isPending ? t('common.verifying') : t('common.verify')}
                   </button>
                 </div>
               </form>
@@ -575,7 +577,7 @@ const Patients: React.FC = () => {
       <Modal
         isOpen={accessRequestsOpen}
         onClose={() => setAccessRequestsOpen(false)}
-        title="访问申请"
+        title={t('patient.accessRequests')}
         size="lg"
       >
         <div className="space-y-4">
@@ -587,11 +589,11 @@ const Patients: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-1">
                         <span className="text-sm font-medium text-gray-900">{req.requester?.realName || '-'}</span>
-                        <span className="text-sm text-gray-500">申请访问</span>
+                        <span className="text-sm text-gray-500">{t('patient.applyAccess')}</span>
                         <span className="text-sm font-medium text-primary-600">{req.patient?.name || '-'}</span>
                       </div>
                       <p className="text-sm text-gray-600 mb-1">{req.reason}</p>
-                      <p className="text-xs text-gray-400">{new Date(req.createdAt).toLocaleString('zh-CN')}</p>
+                      <p className="text-xs text-gray-400">{new Date(req.createdAt).toLocaleString(i18n.language)}</p>
                     </div>
                     <div className="flex items-center space-x-2 ml-4">
                       <button
@@ -599,14 +601,14 @@ const Patients: React.FC = () => {
                         disabled={approveMutation.isPending}
                         className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
                       >
-                        批准
+                        {t('common.approve')}
                       </button>
                       <button
                         onClick={() => rejectMutation.mutate(req.id)}
                         disabled={rejectMutation.isPending}
                         className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
                       >
-                        拒绝
+                        {t('common.reject')}
                       </button>
                     </div>
                   </div>
@@ -614,7 +616,7 @@ const Patients: React.FC = () => {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500 text-center py-6">暂无待处理的访问申请</p>
+            <p className="text-sm text-gray-500 text-center py-6">{t('patient.noPendingRequests')}</p>
           )}
         </div>
       </Modal>
@@ -623,9 +625,9 @@ const Patients: React.FC = () => {
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
-        title="确认删除"
-        message={`确定要删除患者「${deleteTarget?.name}」吗？此操作不可撤销。`}
-        confirmText="删除"
+        title={t('patient.deleteConfirmTitle')}
+        message={t('patient.deleteConfirmMessage', { name: deleteTarget?.name })}
+        confirmText={t('common.delete')}
         variant="danger"
       />
     </div>

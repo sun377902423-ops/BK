@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { InboxIcon } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
@@ -17,22 +18,23 @@ interface AccessRequest {
   createdAt: string;
 }
 
-const requestStatusMap: Record<string, { label: string; className: string }> = {
-  PENDING: { label: '待处理', className: 'bg-yellow-100 text-yellow-800' },
-  APPROVED: { label: '已批准', className: 'bg-green-100 text-green-800' },
-  REJECTED: { label: '已拒绝', className: 'bg-red-100 text-red-800' },
-};
-
 const tabs = [
-  { label: '收到的申请', value: 'received' },
-  { label: '我发出的申请', value: 'sent' },
+  { labelKey: 'accessRequest.received', value: 'received' },
+  { labelKey: 'accessRequest.sent', value: 'sent' },
 ] as const;
 
 type TabValue = typeof tabs[number]['value'];
 
 const AccessRequests: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabValue>('received');
+
+  const requestStatusMap: Record<string, { label: string; className: string }> = {
+    PENDING: { label: t('status.pending'), className: 'bg-yellow-100 text-yellow-800' },
+    APPROVED: { label: t('status.approved'), className: 'bg-green-100 text-green-800' },
+    REJECTED: { label: t('status.rejected'), className: 'bg-red-100 text-red-800' },
+  };
 
   const { data: receivedRequests, isLoading: loadingReceived } = useQuery<AccessRequest[]>({
     queryKey: ['access-requests', 'received'],
@@ -76,7 +78,7 @@ const AccessRequests: React.FC = () => {
 
   return (
     <div>
-      <PageHeader title="访问申请管理" />
+      <PageHeader title={t('accessRequest.title')} />
 
       <div className="mb-6 border-b border-gray-200">
         <nav className="flex space-x-8">
@@ -90,7 +92,7 @@ const AccessRequests: React.FC = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              {tab.label}
+              {t(tab.labelKey)}
             </button>
           ))}
         </nav>
@@ -103,12 +105,12 @@ const AccessRequests: React.FC = () => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">患者姓名</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">申请人</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">申请理由</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">申请时间</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('accessRequest.patientName')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('accessRequest.requester')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('accessRequest.reason')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('accessRequest.requestTime')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('accessRequest.status')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -120,7 +122,7 @@ const AccessRequests: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{req.requester?.realName || '-'}</td>
                         <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{req.reason}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(req.createdAt).toLocaleString('zh-CN')}
+                          {new Date(req.createdAt).toLocaleString(i18n.language)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusEntry.className}`}>
@@ -135,14 +137,14 @@ const AccessRequests: React.FC = () => {
                                 disabled={approveMutation.isPending}
                                 className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
                               >
-                                批准
+                                {t('common.approve')}
                               </button>
                               <button
                                 onClick={() => rejectMutation.mutate(req.id)}
                                 disabled={rejectMutation.isPending}
                                 className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
                               >
-                                拒绝
+                                {t('common.reject')}
                               </button>
                             </div>
                           )}
@@ -158,7 +160,7 @@ const AccessRequests: React.FC = () => {
             </div>
           </div>
         ) : (
-          <EmptyState icon={<InboxIcon className="w-16 h-16" />} title="暂无收到的申请" description="当有人申请访问您的患者时，会显示在这里" />
+          <EmptyState icon={<InboxIcon className="w-16 h-16" />} title={t('accessRequest.noReceived')} description={t('accessRequest.noReceivedDesc')} />
         )
       )}
 
@@ -169,10 +171,10 @@ const AccessRequests: React.FC = () => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">患者姓名</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">申请理由</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">申请时间</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('accessRequest.patientName')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('accessRequest.reason')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('accessRequest.status')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('accessRequest.requestTime')}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -188,7 +190,7 @@ const AccessRequests: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(req.createdAt).toLocaleString('zh-CN')}
+                          {new Date(req.createdAt).toLocaleString(i18n.language)}
                         </td>
                       </tr>
                     );
@@ -198,7 +200,7 @@ const AccessRequests: React.FC = () => {
             </div>
           </div>
         ) : (
-          <EmptyState icon={<InboxIcon className="w-16 h-16" />} title="暂无发出的申请" description="当您申请访问其他患者的病历后，会显示在这里" />
+          <EmptyState icon={<InboxIcon className="w-16 h-16" />} title={t('accessRequest.noSent')} description={t('accessRequest.noSentDesc')} />
         )
       )}
     </div>

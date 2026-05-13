@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeftIcon,
@@ -51,13 +52,8 @@ interface Patient {
   createdAt: string;
 }
 
-const genderMap: Record<string, string> = {
-  MALE: '男',
-  FEMALE: '女',
-  OTHER: '其他',
-};
-
 const PatientDetail: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -73,6 +69,12 @@ const PatientDetail: React.FC = () => {
     address: '',
     hospitalId: '',
   });
+
+  const genderMap: Record<string, string> = {
+    MALE: t('gender.male'),
+    FEMALE: t('gender.female'),
+    OTHER: t('gender.other'),
+  };
 
   const { data: patient, isLoading } = useQuery<Patient>({
     queryKey: ['patient', id],
@@ -119,7 +121,7 @@ const PatientDetail: React.FC = () => {
   };
 
   if (isLoading) return <LoadingSpinner />;
-  if (!patient) return <div className="text-center py-12 text-gray-500">未找到患者信息</div>;
+  if (!patient) return <div className="text-center py-12 text-gray-500">{t('patient.notFound')}</div>;
 
   return (
     <div className="space-y-6">
@@ -131,11 +133,11 @@ const PatientDetail: React.FC = () => {
           >
             <ArrowLeftIcon className="w-5 h-5" />
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">患者详情</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('patient.detail')}</h1>
         </div>
         <button onClick={openEditModal} className="btn-primary inline-flex items-center">
           <PencilSquareIcon className="w-4 h-4 mr-1" />
-          编辑
+          {t('common.edit')}
         </button>
       </div>
 
@@ -146,39 +148,39 @@ const PatientDetail: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 flex-1">
             <div>
-              <p className="text-sm text-gray-500">姓名</p>
+              <p className="text-sm text-gray-500">{t('patient.name')}</p>
               <p className="text-base font-medium text-gray-900">{patient.name}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">患者ID</p>
+              <p className="text-sm text-gray-500">{t('patient.patientId')}</p>
               <p className="text-base font-medium text-primary-600">{patient.patientId}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">性别</p>
+              <p className="text-sm text-gray-500">{t('patient.gender')}</p>
               <p className="text-base font-medium text-gray-900">{genderMap[patient.gender] || patient.gender}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">出生日期</p>
+              <p className="text-sm text-gray-500">{t('patient.birthDate')}</p>
               <p className="text-base font-medium text-gray-900">
-                {patient.birthDate ? new Date(patient.birthDate).toLocaleDateString('zh-CN') : '-'}
+                {patient.birthDate ? new Date(patient.birthDate).toLocaleDateString(i18n.language) : '-'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">电话</p>
+              <p className="text-sm text-gray-500">{t('patient.phone')}</p>
               <p className="text-base font-medium text-gray-900">{patient.phone || '-'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">邮箱</p>
+              <p className="text-sm text-gray-500">{t('patient.email')}</p>
               <p className="text-base font-medium text-gray-900">{patient.email || '-'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">所属医院</p>
+              <p className="text-sm text-gray-500">{t('patient.hospital')}</p>
               <p className="text-base font-medium text-gray-900">{patient.hospital?.name || '-'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">创建时间</p>
+              <p className="text-sm text-gray-500">{t('patient.createdAt')}</p>
               <p className="text-base font-medium text-gray-900">
-                {new Date(patient.createdAt).toLocaleDateString('zh-CN')}
+                {new Date(patient.createdAt).toLocaleDateString(i18n.language)}
               </p>
             </div>
           </div>
@@ -197,7 +199,7 @@ const PatientDetail: React.FC = () => {
               }`}
             >
               <ClipboardDocumentListIcon className="w-4 h-4 mr-2" />
-              关联检查
+              {t('patient.relatedStudies')}
             </button>
             <button
               onClick={() => setActiveTab('consultations')}
@@ -208,7 +210,7 @@ const PatientDetail: React.FC = () => {
               }`}
             >
               <VideoCameraIcon className="w-4 h-4 mr-2" />
-              会诊记录
+              {t('patient.consultationRecords')}
             </button>
           </nav>
         </div>
@@ -220,11 +222,11 @@ const PatientDetail: React.FC = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">检查ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">检查类型</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">检查日期</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">系列数</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('study.studyId')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('study.modality')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('study.studyDate')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('study.description')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('study.series')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -233,7 +235,7 @@ const PatientDetail: React.FC = () => {
                         <td className="px-6 py-4 text-sm font-medium text-primary-600">{study.orthancStudyId}</td>
                         <td className="px-6 py-4 text-sm text-gray-900">{study.modality}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">
-                          {study.studyDate ? new Date(study.studyDate).toLocaleDateString('zh-CN') : '-'}
+                          {study.studyDate ? new Date(study.studyDate).toLocaleDateString(i18n.language) : '-'}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">{study.studyDescription || '-'}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">{study.seriesCount || 0}</td>
@@ -243,7 +245,7 @@ const PatientDetail: React.FC = () => {
                 </table>
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-400">暂无关联检查</div>
+              <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-400">{t('patient.noRelatedStudies')}</div>
             )
           )}
 
@@ -253,10 +255,10 @@ const PatientDetail: React.FC = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">会诊标题</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">参与人数</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">创建时间</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('consultation.consultationTitle')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('accessRequest.status')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('consultation.participants')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('patient.createdAt')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -266,7 +268,7 @@ const PatientDetail: React.FC = () => {
                         <td className="px-6 py-4 text-sm"><StatusBadge status={c.status} type="consultation" /></td>
                         <td className="px-6 py-4 text-sm text-gray-600">{c.participants?.length || 0}</td>
                         <td className="px-6 py-4 text-sm text-gray-500">
-                          {new Date(c.createdAt).toLocaleDateString('zh-CN')}
+                          {new Date(c.createdAt).toLocaleDateString(i18n.language)}
                         </td>
                       </tr>
                     ))}
@@ -274,7 +276,7 @@ const PatientDetail: React.FC = () => {
                 </table>
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-400">暂无会诊记录</div>
+              <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-400">{t('patient.noConsultationRecords')}</div>
             )
           )}
         </div>
@@ -283,7 +285,7 @@ const PatientDetail: React.FC = () => {
       <Modal
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        title="编辑患者"
+        title={t('patient.editPatient')}
         size="lg"
       >
         <form
@@ -295,41 +297,41 @@ const PatientDetail: React.FC = () => {
         >
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">患者ID</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.patientId')}</label>
               <input type="text" value={form.patientId} onChange={(e) => setForm({ ...form, patientId: e.target.value })} className="input" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.name')}</label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">性别</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.gender')}</label>
               <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="input">
-                <option value="MALE">男</option>
-                <option value="FEMALE">女</option>
-                <option value="OTHER">其他</option>
+                <option value="MALE">{t('gender.male')}</option>
+                <option value="FEMALE">{t('gender.female')}</option>
+                <option value="OTHER">{t('gender.other')}</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">出生日期</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.birthDate')}</label>
               <input type="date" value={form.birthDate} onChange={(e) => setForm({ ...form, birthDate: e.target.value })} className="input" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">电话</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.phone')}</label>
               <input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.email')}</label>
               <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input" />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">地址</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.address')}</label>
               <input type="text" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="input" />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">所属医院</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('patient.hospital')}</label>
               <select value={form.hospitalId} onChange={(e) => setForm({ ...form, hospitalId: e.target.value })} className="input">
-                <option value="">请选择医院</option>
+                <option value="">{t('patient.selectHospital')}</option>
                 {hospitals?.map((h) => (
                   <option key={h.id} value={h.id}>{h.name}</option>
                 ))}
@@ -337,9 +339,9 @@ const PatientDetail: React.FC = () => {
             </div>
           </div>
           <div className="flex justify-end space-x-3 pt-4 border-t">
-            <button type="button" onClick={() => setEditModalOpen(false)} className="btn-secondary">取消</button>
+            <button type="button" onClick={() => setEditModalOpen(false)} className="btn-secondary">{t('common.cancel')}</button>
             <button type="submit" disabled={updateMutation.isPending} className="btn-primary disabled:opacity-50">
-              {updateMutation.isPending ? '保存中...' : '保存'}
+              {updateMutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>

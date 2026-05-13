@@ -1,4 +1,5 @@
 import Modal from './Modal';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -16,9 +17,11 @@ export default function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmText = '确认',
+  confirmText,
   variant = 'primary',
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
+  const resolvedConfirmText = confirmText ?? t('common.confirm');
   const confirmBtnClass =
     variant === 'danger'
       ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
@@ -33,7 +36,7 @@ export default function ConfirmDialog({
           className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           onClick={onClose}
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="button"
@@ -43,7 +46,7 @@ export default function ConfirmDialog({
             onClose();
           }}
         >
-          {confirmText}
+          {resolvedConfirmText}
         </button>
       </div>
     </Modal>

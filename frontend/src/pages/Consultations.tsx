@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   PlusIcon,
@@ -45,15 +46,8 @@ interface User {
   username: string;
 }
 
-const statusTabs = [
-  { label: '全部', value: '' },
-  { label: '待开始', value: 'CREATED' },
-  { label: '进行中', value: 'IN_PROGRESS' },
-  { label: '已完成', value: 'COMPLETED' },
-  { label: '已取消', value: 'CANCELLED' },
-];
-
 const Consultations: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -63,6 +57,14 @@ const Consultations: React.FC = () => {
     studyId: '',
     participantIds: [] as number[],
   });
+
+  const statusTabs = [
+    { label: t('consultation.all'), value: '' },
+    { label: t('consultation.pendingStart'), value: 'CREATED' },
+    { label: t('consultation.inProgress'), value: 'IN_PROGRESS' },
+    { label: t('consultation.completed'), value: 'COMPLETED' },
+    { label: t('consultation.cancelled'), value: 'CANCELLED' },
+  ];
 
   const { data: consultations, isLoading } = useQuery<Consultation[]>({
     queryKey: ['consultations', statusFilter],
@@ -140,11 +142,11 @@ const Consultations: React.FC = () => {
   return (
     <div>
       <PageHeader
-        title="远程会诊"
+        title={t('consultation.title')}
         action={
           <button onClick={() => setModalOpen(true)} className="btn-primary inline-flex items-center">
             <PlusIcon className="w-4 h-4 mr-1" />
-            新建会诊
+            {t('consultation.newConsultation')}
           </button>
         }
       />
@@ -181,19 +183,19 @@ const Consultations: React.FC = () => {
 
               <div className="space-y-2 mb-4">
                 <div className="flex items-center text-sm text-gray-600">
-                  <span className="text-gray-400 w-16">患者:</span>
+                  <span className="text-gray-400 w-16">{t('consultation.patient')}:</span>
                   <span>{consultation.patient?.name || '-'}</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
-                  <span className="text-gray-400 w-16">参与人:</span>
+                  <span className="text-gray-400 w-16">{t('consultation.participants')}:</span>
                   <span className="inline-flex items-center">
                     <UserGroupIcon className="w-4 h-4 mr-1" />
-                    {consultation.participants?.length || 0} 人
+                    {consultation.participants?.length || 0} {t('consultation.people')}
                   </span>
                 </div>
                 <div className="flex items-center text-sm text-gray-500">
-                  <span className="text-gray-400 w-16">创建:</span>
-                  <span>{new Date(consultation.createdAt).toLocaleDateString('zh-CN')}</span>
+                  <span className="text-gray-400 w-16">{t('consultation.created')}:</span>
+                  <span>{new Date(consultation.createdAt).toLocaleDateString(i18n.language)}</span>
                 </div>
               </div>
 
@@ -204,7 +206,7 @@ const Consultations: React.FC = () => {
                     className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200"
                   >
                     <PlayIcon className="w-3.5 h-3.5 mr-1" />
-                    开始会诊
+                    {t('consultation.startConsultation')}
                   </button>
                 )}
                 {consultation.status === 'IN_PROGRESS' && (
@@ -213,7 +215,7 @@ const Consultations: React.FC = () => {
                     className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-green-100 text-green-700 hover:bg-green-200"
                   >
                     <StopIcon className="w-3.5 h-3.5 mr-1" />
-                    结束会诊
+                    {t('consultation.endConsultation')}
                   </button>
                 )}
                 {(consultation.status === 'CREATED' || consultation.status === 'IN_PROGRESS') && (
@@ -222,7 +224,7 @@ const Consultations: React.FC = () => {
                     className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-red-100 text-red-700 hover:bg-red-200"
                   >
                     <XMarkIcon className="w-3.5 h-3.5 mr-1" />
-                    取消会诊
+                    {t('consultation.cancelConsultation')}
                   </button>
                 )}
               </div>
@@ -230,13 +232,13 @@ const Consultations: React.FC = () => {
           ))}
         </div>
       ) : (
-        <EmptyState icon={<InboxIcon className="w-16 h-16" />} title="暂无会诊数据" description="点击上方按钮新建一个会诊" />
+        <EmptyState icon={<InboxIcon className="w-16 h-16" />} title={t('consultation.noData')} description={t('consultation.createFirst')} />
       )}
 
       <Modal
         isOpen={modalOpen}
         onClose={() => { setModalOpen(false); setForm({ title: '', patientId: '', studyId: '', participantIds: [] }); }}
-        title="新建会诊"
+        title={t('consultation.newConsultation')}
         size="lg"
       >
         <form
@@ -247,7 +249,7 @@ const Consultations: React.FC = () => {
           className="space-y-4"
         >
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">会诊标题</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('consultation.consultationTitle')}</label>
             <input
               type="text"
               value={form.title}
@@ -258,14 +260,14 @@ const Consultations: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">选择患者</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('consultation.selectPatient')}</label>
             <select
               value={form.patientId}
               onChange={(e) => setForm({ ...form, patientId: e.target.value })}
               className="input"
               required
             >
-              <option value="">请选择患者</option>
+              <option value="">{t('consultation.selectPatientPlaceholder')}</option>
               {patients?.map((p) => (
                 <option key={p.id} value={p.id}>{p.name} ({p.patientId})</option>
               ))}
@@ -273,13 +275,13 @@ const Consultations: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">关联检查（可选）</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('consultation.relatedStudy')}</label>
             <select
               value={form.studyId}
               onChange={(e) => setForm({ ...form, studyId: e.target.value })}
               className="input"
             >
-              <option value="">不关联检查</option>
+              <option value="">{t('consultation.noRelatedStudy')}</option>
               {studies?.map((s) => (
                 <option key={s.id} value={s.id}>{s.orthancStudyId} - {s.modality}</option>
               ))}
@@ -287,7 +289,7 @@ const Consultations: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">参与人员</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('consultation.participantsLabel')}</label>
             <div className="border border-gray-300 rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
               {users?.map((user) => (
                 <label key={user.id} className="flex items-center space-x-2 cursor-pointer">
@@ -301,7 +303,7 @@ const Consultations: React.FC = () => {
                 </label>
               ))}
               {(!users || users.length === 0) && (
-                <p className="text-sm text-gray-400">暂无可选用户</p>
+                <p className="text-sm text-gray-400">{t('consultation.noAvailableUsers')}</p>
               )}
             </div>
           </div>
@@ -312,10 +314,10 @@ const Consultations: React.FC = () => {
               onClick={() => { setModalOpen(false); setForm({ title: '', patientId: '', studyId: '', participantIds: [] }); }}
               className="btn-secondary"
             >
-              取消
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={createMutation.isPending} className="btn-primary disabled:opacity-50">
-              {createMutation.isPending ? '创建中...' : '创建'}
+              {createMutation.isPending ? t('common.creating') : t('common.create')}
             </button>
           </div>
         </form>
