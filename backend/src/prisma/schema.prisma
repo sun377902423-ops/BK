@@ -1,0 +1,447 @@
+generator client {
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  ADMIN
+  DOCTOR_LOCAL
+  DOCTOR_REMOTE
+  TECHNICIAN
+}
+
+enum ConsultationStatus {
+  CREATED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  ARCHIVED
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum DiagnosisType {
+  PRIMARY
+  SECONDARY
+  DIFFERENTIAL
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  DELETE
+  VIEW
+  EXPORT
+  SIGN
+  START_CONSULTATION
+  END_CONSULTATION
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  passwordHash String
+  realName  String?
+  email     String?  @unique
+  phone     String?
+  avatarUrl String?
+  roleId    Int
+  role      Role     @relation(fields: [roleId], references: [id])
+  hospitalId Int?
+  hospital  Hospital? @relation(fields: [hospitalId], references: [id])
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  consultationsAsParticipant ConsultationParticipant[]
+  reports                    Report[]              @relation("ReportSignedBy")
+  medicalRecords             MedicalRecord[]
+  medicalOrders              MedicalOrder[]
+  diagnoses                  Diagnosis[]
+  auditLogs                  AuditLog[]
+  notifications              Notification[]
+  annotationLayers           AnnotationLayer[]
+  reportTemplates            ReportTemplate[]
+  operationLogs              OperationLog[]
+  createdPatients            Patient[]             @relation("PatientCreatedBy")
+  patientAccessRequests      PatientAccessRequest[]
+  patientAccesses            PatientAccess[]
+  reviewedAccessRequests     PatientAccessRequest[] @relation("AccessRequestReviewedBy")
+  grantedAccesses            PatientAccess[]        @relation("AccessGrantedBy")
+
+  @@map("users")
+}
+
+model Role {
+  id          Int       @id @default(autoincrement())
+  name        RoleName  @unique
+  displayName String
+  permissions Json      @default("[]")
+  isSystem    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  users User[]
+
+  @@map("roles")
+}
+
+model Hospital {
+  id          Int       @id @default(autoincrement())
+  name        String
+  country     String?
+  city        String?
+  address     String?
+  phone       String?
+  isEdgeSite  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  users        User[]
+  patients       Patient[]
+  studies        Study[]
+  consultations  Consultation[]
+  imagingDevices ImagingDevice[]
+
+  @@map("hospitals")
+}
+
+model Patient {
+  id            Int       @id @default(autoincrement())
+  patientId     String    @unique
+  name          String
+  gender        String?
+  birthDate     DateTime?
+  phone         String?
+  email         String?
+  address       String?
+  hospitalId    Int?
+  hospital      Hospital? @relation(fields: [hospitalId], references: [id])
+  createdById   Int?
+  createdBy     User?     @relation("PatientCreatedBy", fields: [createdById], references: [id])
+  casePassword  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  studies              Study[]
+  consultations        Consultation[]
+  reports              Report[]
+  medicalRecords       MedicalRecord[]
+  medicalOrders        MedicalOrder[]
+  diagnoses            Diagnosis[]
+  accessRequests       PatientAccessRequest[]
+  grantedAccesses      PatientAccess[]
+
+  @@map("patients")
+}
+
+model Study {
+  id            Int       @id @default(autoincrement())
+  orthancStudyId String   @unique
+  patientId     Int
+  patient       Patient   @relation(fields: [patientId], references: [id])
+  modality      String?
+  studyDate     DateTime?
+  accessionNumber String?
+  studyDescription String?
+  seriesCount   Int       @default(0)
+  hospitalId    Int?
+  hospital      Hospital? @relation(fields: [hospitalId], references: [id])
+  deviceId      Int?
+  device        ImagingDevice? @relation(fields: [deviceId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  consultations Consultation[]
+  reports       Report[]
+  annotationLayers AnnotationLayer[]
+
+  @@map("studies")
+}
+
+model ImagingDevice {
+  id        Int       @id @default(autoincrement())
+  name      String
+  modality  String
+  aeTitle   String
+  host      String
+  port      Int
+  hospitalId Int?
+  hospital  Hospital? @relation(fields: [hospitalId], references: [id])
+  status    String    @default("active")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  studies Study[]
+
+  @@map("imaging_devices")
+}
+
+model Consultation {
+  id            Int                  @id @default(autoincrement())
+  jitsiRoomName String               @unique
+  title         String
+  patientId     Int
+  patient       Patient              @relation(fields: [patientId], references: [id])
+  studyId       Int?
+  study         Study?               @relation(fields: [studyId], references: [id])
+  hospitalId    Int?
+  hospital      Hospital?            @relation(fields: [hospitalId], references: [id])
+  status        ConsultationStatus   @default(CREATED)
+  startAt       DateTime?
+  endAt         DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  participants ConsultationParticipant[]
+  reports      Report[]
+  annotationLayers AnnotationLayer[]
+
+  @@map("consultations")
+}
+
+model ConsultationParticipant {
+  id             Int         @id @default(autoincrement())
+  consultationId Int
+  consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  userId         Int
+  user           User        @relation(fields: [userId], references: [id])
+  joinAt         DateTime    @default(now())
+  leaveAt        DateTime?
+  isHost         Boolean     @default(false)
+
+  @@unique([consultationId, userId])
+  @@map("consultation_participants")
+}
+
+model Report {
+  id             Int           @id @default(autoincrement())
+  consultationId Int?
+  consultation   Consultation? @relation(fields: [consultationId], references: [id])
+  studyId        Int?
+  study          Study?        @relation(fields: [studyId], references: [id])
+  patientId      Int?
+  patient        Patient?      @relation(fields: [patientId], references: [id])
+  content        Json          @default("{}")
+  status         ReportStatus  @default(DRAFT)
+  signedById     Int?
+  signedBy       User?         @relation("ReportSignedBy", fields: [signedById], references: [id])
+  signedAt       DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  attachments Attachment[]
+
+  @@map("reports")
+}
+
+model MedicalRecord {
+  id          Int       @id @default(autoincrement())
+  patientId   Int
+  patient     Patient   @relation(fields: [patientId], references: [id])
+  chiefComplaint String?
+  presentIllness String?
+  physicalExam String?
+  createdById Int?
+  createdBy   User?     @relation(fields: [createdById], references: [id])
+  visitDate   DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("medical_records")
+}
+
+model MedicalOrder {
+  id          Int         @id @default(autoincrement())
+  patientId   Int
+  patient     Patient     @relation(fields: [patientId], references: [id])
+  orderType   String
+  content     String
+  dosage      String?
+  frequency   String?
+  status      OrderStatus @default(PENDING)
+  createdById Int?
+  createdBy   User?       @relation(fields: [createdById], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("medical_orders")
+}
+
+model Diagnosis {
+  id             Int           @id @default(autoincrement())
+  patientId      Int
+  patient        Patient       @relation(fields: [patientId], references: [id])
+  diagnosisType  DiagnosisType @default(PRIMARY)
+  diagnosisName  String
+  diagnosisCode  String?
+  createdById    Int?
+  createdBy      User?         @relation(fields: [createdById], references: [id])
+  diagnosedAt    DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@map("diagnoses")
+}
+
+model AuditLog {
+  id           Int          @id @default(autoincrement())
+  userId       Int?
+  user         User?        @relation(fields: [userId], references: [id])
+  action       AuditAction
+  resourceType String?
+  resourceId   Int?
+  ipAddress    String?
+  userAgent    String?
+  detail       Json?
+  createdAt    DateTime     @default(now())
+
+  @@map("audit_logs")
+}
+
+model SystemConfig {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+model Attachment {
+  id           Int       @id @default(autoincrement())
+  reportId     Int
+  report       Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  fileName     String
+  fileUrl      String
+  fileType     String
+  fileSize     Int
+  annotationIds Json?
+  createdAt    DateTime  @default(now())
+
+  @@map("attachments")
+}
+
+model Notification {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id])
+  type         String
+  title        String
+  body         String
+  resourceType String?
+  resourceId   Int?
+  isRead       Boolean   @default(false)
+  readAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@map("notifications")
+}
+
+model AnnotationLayer {
+  id              Int       @id @default(autoincrement())
+  consultationId  Int?
+  consultation    Consultation? @relation(fields: [consultationId], references: [id])
+  studyId         Int?
+  study           Study?    @relation(fields: [studyId], references: [id])
+  layerData       Json
+  createdById     Int
+  createdBy       User      @relation(fields: [createdById], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("annotation_layers")
+}
+
+model OperationLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  detail    Json?
+  duration  Int?
+  result    String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@map("operation_logs")
+}
+
+model ReportTemplate {
+  id            Int       @id @default(autoincrement())
+  name          String
+  studyModality String?
+  templateJson  Json
+  isDefault     Boolean   @default(false)
+  createdById   Int
+  createdBy     User      @relation(fields: [createdById], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("report_templates")
+}
+
+model BackupRecord {
+  id          Int      @id @default(autoincrement())
+  type        String
+  status      String
+  filePath    String?
+  fileSize    Int?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@map("backup_records")
+}
+
+model PatientAccessRequest {
+  id          Int       @id @default(autoincrement())
+  patientId   Int
+  patient     Patient   @relation(fields: [patientId], references: [id])
+  requesterId Int
+  requester   User      @relation(fields: [requesterId], references: [id])
+  reason      String
+  status      String    @default("PENDING")
+  reviewedById Int?
+  reviewedBy  User?     @relation("AccessRequestReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("patient_access_requests")
+}
+
+model PatientAccess {
+  id         Int      @id @default(autoincrement())
+  patientId  Int
+  patient    Patient  @relation(fields: [patientId], references: [id])
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  grantedById Int?
+  grantedBy  User?     @relation("AccessGrantedBy", fields: [grantedById], references: [id])
+  accessType String   @default("GRANTED")
+  expiresAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@unique([patientId, userId])
+  @@map("patient_accesses")
+}

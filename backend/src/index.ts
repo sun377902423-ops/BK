@@ -1,0 +1,124 @@
+import Fastify from 'fastify';
+import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
+import jwt from '@fastify/jwt';
+import websocket from '@fastify/websocket';
+import multipart from '@fastify/multipart';
+import dotenv from 'dotenv';
+import { prisma } from './lib/prisma.js';
+import { authRoutes } from './routes/auth.js';
+import { patientRoutes } from './routes/patients.js';
+import { studyRoutes } from './routes/studies.js';
+import { consultationRoutes } from './routes/consultations.js';
+import { hospitalRoutes } from './routes/hospitals.js';
+import { userRoutes } from './routes/users.js';
+import { reportRoutes } from './routes/reports.js';
+
+dotenv.config();
+
+const fastify = Fastify({ logger: true });
+
+fastify.decorate('authenticate', async (request, reply) => {
+  try {
+    await request.jwtVerify();
+  } catch (err) {
+    reply.send(err);
+  }
+});
+
+await fastify.register(cors, {
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true,
+});
+
+await fastify.register(helmet);
+
+await fastify.register(rateLimit, {
+  max: 60,
+  timeWindow: '1 minute',
+});
+
+await fastify.register(jwt, {
+  secret: process.env.JWT_SECRET || 'dev-secret-change-me',
+});
+
+await fastify.register(websocket);
+
+await fastify.register(multipart, {
+  limits: {
+    fileSize: 100 * 1024 * 1024,
+  },
+});
+
+await fastify.register(authRoutes, { prefix: '/api' });
+await fastify.register(patientRoutes, { prefix: '/api' });
+await fastify.register(studyRoutes, { prefix: '/api' });
+await fastify.register(consultationRoutes, { prefix: '/api' });
+await fastify.register(hospitalRoutes, { prefix: '/api' });
+await fastify.register(userRoutes, { prefix: '/api' });
+await fastify.register(reportRoutes, { prefix: '/api' });
+
+fastify.get('/health', async () => {
+  return { status: 'ok', timestamp: new Date().toISOString() };
+});
+
+fastify.get('/api/dashboard/stats', { preHandler: [fastify.authenticate] }, async () => {
+  const [userCount, patientCount, studyCount, consultationCount] = await Promise.all([
+    prisma.user.count(),
+    prisma.patient.count(),
+    prisma.study.count(),
+    prisma.consultation.count(),
+  ]);
+
+  return { userCount, patientCount, studyCount, consultationCount };
+});
+
+fastify.get('/api/dashboard/recent-activities', { preHandler: [fastify.authenticate] }, async () => {
+  const activities = await prisma.auditLog.findMany({
+    take: 10,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          realName: true,
+        },
+      },
+    },
+  });
+  return activities;
+});
+
+fastify.get('/api/dashboard/pending', { preHandler: [fastify.authenticate] }, async () => {
+  const [pendingConsultations, draftReports] = await Promise.all([
+    prisma.consultation.findMany({
+      where: { status: 'CREATED' },
+      include: { patient: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+    prisma.report.findMany({
+      where: { status: 'DRAFT' },
+      include: { patient: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+  ]);
+
+  return { pendingConsultations, draftReports };
+});
+
+const start = async () => {
+  try {
+    const port = parseInt(process.env.PORT || '3001', 10);
+    await fastify.listen({ host: '0.0.0.0', port });
+    console.log(`Server running on http://0.0.0.0:${port}`);
+  } catch (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+};
+
+start();
