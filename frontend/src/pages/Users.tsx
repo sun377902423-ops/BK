@@ -43,7 +43,7 @@ const emptyForm = {
 };
 
 const Users: React.FC = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const roleNameMap: Record<string, string> = {
     ADMIN: t('role.admin'),
     DOCTOR_LOCAL: t('role.doctorLocal'),

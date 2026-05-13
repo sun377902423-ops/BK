@@ -28,7 +28,7 @@ const emptyForm = {
 };
 
 const Hospitals: React.FC = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingHospital, setEditingHospital] = useState<Hospital | null>(null);
