@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheckIcon, PlusIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 import PermissionGuard from '@/components/ui/PermissionGuard';
 import { PERMISSIONS } from '@/lib/permissions';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -23,6 +24,7 @@ interface PermissionGroup {
 
 const Roles: React.FC = () => {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
@@ -329,9 +331,8 @@ const Roles: React.FC = () => {
         title={t('role.deleteConfirmTitle')}
         message={t('role.deleteConfirmMessage', { name: deleteConfirm?.displayName })}
         confirmText={t('common.delete')}
-        variant="danger"
         onConfirm={() => deleteConfirm && deleteMutation.mutate(deleteConfirm.id)}
-        onClose={() => setDeleteConfirm(null)}
+        onCancel={() => setDeleteConfirm(null)}
       />
     </div>
   );

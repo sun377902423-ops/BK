@@ -247,7 +247,7 @@ const Studies: React.FC = () => {
                       <div className="flex items-center space-x-3">
                         <PermissionGuard permissions={[PERMISSIONS.STUDY_READ]}>
                           <a
-                            href={`/ohif/viewer/${study.orthancStudyId}`}
+                            href={`/ohif/viewer?StudyInstanceUIDs=${study.orthancStudyId}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-primary-600 hover:text-primary-900 inline-flex items-center"

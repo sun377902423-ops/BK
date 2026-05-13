@@ -27,7 +27,6 @@ export const PERMISSIONS = {
 
   REPORT_LIST: 'report:list',
   REPORT_CREATE: 'report:create',
-  REPORT_READ: 'report:read',
   REPORT_UPDATE: 'report:update',
   REPORT_SUBMIT: 'report:submit',
   REPORT_SIGN: 'report:sign',

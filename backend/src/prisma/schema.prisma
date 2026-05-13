@@ -81,11 +81,6 @@ model User {
   annotationLayers           AnnotationLayer[]
   reportTemplates            ReportTemplate[]
   operationLogs              OperationLog[]
-  createdPatients            Patient[]             @relation("PatientCreatedBy")
-  patientAccessRequests      PatientAccessRequest[]
-  patientAccesses            PatientAccess[]
-  reviewedAccessRequests     PatientAccessRequest[] @relation("AccessRequestReviewedBy")
-  grantedAccesses            PatientAccess[]        @relation("AccessGrantedBy")
 
   @@map("users")
 }
@@ -125,30 +120,25 @@ model Hospital {
 }
 
 model Patient {
-  id            Int       @id @default(autoincrement())
-  patientId     String    @unique
-  name          String
-  gender        String?
-  birthDate     DateTime?
-  phone         String?
-  email         String?
-  address       String?
-  hospitalId    Int?
-  hospital      Hospital? @relation(fields: [hospitalId], references: [id])
-  createdById   Int?
-  createdBy     User?     @relation("PatientCreatedBy", fields: [createdById], references: [id])
-  casePassword  String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          Int       @id @default(autoincrement())
+  patientId   String    @unique
+  name        String
+  gender      String?
+  birthDate   DateTime?
+  phone       String?
+  email       String?
+  address     String?
+  hospitalId  Int?
+  hospital    Hospital? @relation(fields: [hospitalId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  studies              Study[]
-  consultations        Consultation[]
-  reports              Report[]
-  medicalRecords       MedicalRecord[]
-  medicalOrders        MedicalOrder[]
-  diagnoses            Diagnosis[]
-  accessRequests       PatientAccessRequest[]
-  grantedAccesses      PatientAccess[]
+  studies       Study[]
+  consultations Consultation[]
+  reports       Report[]
+  medicalRecords MedicalRecord[]
+  medicalOrders MedicalOrder[]
+  diagnoses     Diagnosis[]
 
   @@map("patients")
 }
@@ -411,37 +401,4 @@ model BackupRecord {
   createdAt   DateTime @default(now())
 
   @@map("backup_records")
-}
-
-model PatientAccessRequest {
-  id          Int       @id @default(autoincrement())
-  patientId   Int
-  patient     Patient   @relation(fields: [patientId], references: [id])
-  requesterId Int
-  requester   User      @relation(fields: [requesterId], references: [id])
-  reason      String
-  status      String    @default("PENDING")
-  reviewedById Int?
-  reviewedBy  User?     @relation("AccessRequestReviewedBy", fields: [reviewedById], references: [id])
-  reviewedAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@map("patient_access_requests")
-}
-
-model PatientAccess {
-  id         Int      @id @default(autoincrement())
-  patientId  Int
-  patient    Patient  @relation(fields: [patientId], references: [id])
-  userId     Int
-  user       User     @relation(fields: [userId], references: [id])
-  grantedById Int?
-  grantedBy  User?     @relation("AccessGrantedBy", fields: [grantedById], references: [id])
-  accessType String   @default("GRANTED")
-  expiresAt  DateTime?
-  createdAt  DateTime @default(now())
-
-  @@unique([patientId, userId])
-  @@map("patient_accesses")
 }
