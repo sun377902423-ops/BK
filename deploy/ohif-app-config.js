@@ -1,9 +1,12 @@
 window.config = {
   routerBasename: '/ohif',
   showStudyList: false,
-  servers: {
-    dicomWeb: [
-      {
+  dataSources: [
+    {
+      sourceName: 'dicomweb',
+      namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
+      configuration: {
+        friendlyName: 'Orthanc DICOMweb',
         name: 'Orthanc',
         wadoUriRoot: '/orthanc/wado',
         qidoRoot: '/orthanc/dicom-web',
@@ -16,16 +19,8 @@ window.config = {
         supportsWildcard: true,
         omitQuotationForMultipartRequest: true,
       },
-    ],
-  },
-  defaultDataSourceName: 'Orthanc',
-  hotkeys: [],
-  ui: {
-    viewportCorners: {
-      left: ['PatientID'],
-      right: ['StudyDate'],
-      bottomLeft: ['StudyDescription'],
-      bottomRight: ['Modality'],
     },
-  },
+  ],
+  defaultDataSourceName: 'dicomweb',
+  hotkeys: [],
 };
