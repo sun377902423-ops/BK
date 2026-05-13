@@ -19,4 +19,44 @@ window.config = {
     ],
   },
   hotkeys: [],
+  extensions: [],
+  i18n: {
+    languages: [
+      {
+        code: 'zh',
+        label: '中文',
+        translations: {
+          'OHIF Viewer': 'BK-PACS',
+          'Open': '',
+          'Research Use': '',
+          'Options': '',
+        },
+      },
+      {
+        code: 'en',
+        label: 'English',
+        translations: {
+          'OHIF Viewer': 'BK-PACS',
+          'Open': '',
+          'Research Use': '',
+          'Options': '',
+        },
+      },
+      {
+        code: 'fr',
+        label: 'Français',
+        translations: {
+          'OHIF Viewer': 'BK-PACS',
+          'Open': '',
+          'Research Use': '',
+          'Options': '',
+        },
+      },
+    ],
+    defaultLanguage: 'zh',
+  },
+  branding: {
+    title: 'BK-PACS',
+    logo: null,
+  },
 };
