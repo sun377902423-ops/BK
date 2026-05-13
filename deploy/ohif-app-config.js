@@ -1,7 +1,5 @@
 window.config = {
   routerBasename: '/ohif',
-  extensions: [],
-  modes: [],
   showStudyList: false,
   servers: {
     dicomWeb: [
