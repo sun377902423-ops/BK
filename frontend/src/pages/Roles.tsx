@@ -24,7 +24,7 @@ interface PermissionGroup {
 
 const Roles: React.FC = () => {
   const { t } = useTranslation();
-  const { hasPermission } = useAuth();
+  const { hasAnyPermission } = useAuth();
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
@@ -331,8 +331,9 @@ const Roles: React.FC = () => {
         title={t('role.deleteConfirmTitle')}
         message={t('role.deleteConfirmMessage', { name: deleteConfirm?.displayName })}
         confirmText={t('common.delete')}
+        variant="danger"
         onConfirm={() => deleteConfirm && deleteMutation.mutate(deleteConfirm.id)}
-        onCancel={() => setDeleteConfirm(null)}
+        onClose={() => setDeleteConfirm(null)}
       />
     </div>
   );
