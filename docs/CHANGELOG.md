@@ -447,6 +447,83 @@ git push origin main
 
 ---
 
+### 9. 会诊系统全面重构 - 生命周期管理、邀请机制、通知系统
+
+**现象**：会诊页面点击卡片无反应，无弹窗无跳转；会诊创建后无邀请流程；状态管理混乱（CREATED 直接到 IN_PROGRESS）；无消息/通知系统
+
+**排查步骤**：
+1. 分析 Consultations.tsx - 卡片是普通 div，没有 onClick 或 Link
+2. 分析 App.tsx - 没有 /consultations/:id 路由
+3. 分析后端 consultations.ts - 状态转换无验证，无邀请机制
+4. 分析 Prisma schema - 缺少 ParticipantRole/ParticipantStatus 枚举
+
+**根因**：
+1. 前端会诊卡片不可点击，缺少详情页和路由
+2. 后端会诊状态管理无状态机验证，CREATED 可直接跳 IN_PROGRESS
+3. 参与人只有 isHost 布尔值，缺少角色区分（发起人/专家/观察员）
+4. 无邀请响应机制（接受/拒绝）
+5. 无通知系统，邀请和状态变更无法通知用户
+6. 无会诊内聊天功能
+
+**解决方案**：
+1. 重构 Prisma 数据模型：
+   - 添加 ConsultationStatus 枚举（CREATED→INVITED→SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED）
+   - 添加 ParticipantRole 枚举（INITIATOR/EXPERT/OBSERVER）
+   - 添加 ParticipantStatus 枚举（INVITED/ACCEPTED/DECLINED/JOINED/LEFT）
+   - 添加 ConsultationMessage 模型
+   - 添加 createdById 字段关联发起人
+2. 重构后端 API：
+   - 状态机转换验证（VALID_TRANSITIONS 映射表）
+   - 邀请参与人 API（/participants/invite）
+   - 响应邀请 API（/participants/:userId/respond）
+   - 消息 API（GET/POST /messages）
+   - 通知 API（GET/PUT /notifications）
+   - 每次状态变更自动创建通知
+3. 重构前端：
+   - Consultations.tsx：卡片可点击跳转，状态筛选 Tab，参与人头像状态指示
+   - 新建 ConsultationDetail.tsx：Jitsi Meet 视频通话、实时聊天、患者信息侧栏
+   - 新建 NotificationBell.tsx：Header 通知铃铛，15 秒轮询未读数
+   - 更新 StatusBadge 支持 INVITED/SCHEDULED 状态
+
+**操作命令**：
+```bash
+# 同步代码到服务器
+rsync -avz --delete -e ssh /path/to/backend/src/ root@115.29.203.40:/root/bksys2/backend/src/
+rsync -avz --delete -e ssh /path/to/frontend/src/ root@115.29.203.40:/root/bksys2/frontend/src/
+
+# 服务器上同步源码到部署副本
+ssh root@115.29.203.40 'cd /root/bksys2 && rsync -avz --delete backend/src/ deploy/backend/src/ && rsync -avz --delete frontend/src/ deploy/frontend/src/'
+
+# 添加数据库新列（兼容已有数据）
+ssh root@115.29.203.40 'cd /root/bksys2/deploy/deploy && docker compose exec -T postgres psql -U bksys -d bksys_med -c "ALTER TABLE consultations ADD COLUMN IF NOT EXISTS \"createdById\" INTEGER NOT NULL DEFAULT 1;"'
+
+# Prisma 数据库同步
+ssh root@115.29.203.40 'cd /root/bksys2/deploy/deploy && docker compose run --rm backend npx prisma db push --accept-data-loss'
+
+# 重新构建并启动
+ssh root@115.29.203.40 'cd /root/bksys2/deploy/deploy && docker compose up -d --build backend frontend'
+
+# 验证 API
+TOKEN=$(curl -s http://localhost:3001/api/auth/login -X POST -H "Content-Type: application/json" -d '{"username":"admin","password":"admin123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+curl -s http://localhost:3001/api/consultations -H "Authorization: Bearer $TOKEN"
+curl -s http://localhost:3001/api/notifications/unread-count -H "Authorization: Bearer $TOKEN"
+
+# 验证通知
+docker compose exec -T postgres psql -U bksys -d bksys_med -c "SELECT * FROM notifications;"
+```
+
+**验证**：
+1. 会诊列表页：卡片可点击跳转到详情页 ✅
+2. 会诊详情页：显示患者信息、参与人、Jitsi 视频 ✅
+3. 状态机：CREATED→INVITED→IN_PROGRESS→COMPLETED 转换正确 ✅
+4. 非法转换被拒绝（CREATED→IN_PROGRESS 返回 400） ✅
+5. 邀请参与人：创建通知记录 ✅
+6. 消息发送：POST /messages 返回消息 ✅
+7. 通知铃铛：15 秒轮询未读数 ✅
+8. 通知类型：CONSULTATION_INVITE、CONSULTATION_STATUS ✅
+
+---
+
 ## 操作规范
 
 ### 更新顺序
