@@ -160,6 +160,7 @@
     "studyDescriptionPlaceholder": "e.g., Chest CT Scan",
     "selectFiles": "Select Files",
     "dragFiles": "or drag files here",
+    "dropHere": "Drop files to upload",
     "fileSupport": "Supports DICOM (.dcm) files, multiple selection, max 100MB per file",
     "selectedFiles": "{{count}} file(s) selected:",
     "uploading": "Uploading: {{name}}",

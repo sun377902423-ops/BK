@@ -160,6 +160,7 @@
     "studyDescriptionPlaceholder": "例如：胸部CT平扫",
     "selectFiles": "选择文件",
     "dragFiles": "或拖拽文件到此处",
+    "dropHere": "松开鼠标即可上传",
     "fileSupport": "支持 DICOM (.dcm) 文件，可多选，单文件最大100MB",
     "selectedFiles": "已选择 {{count}} 个文件：",
     "uploading": "正在上传: {{name}}",

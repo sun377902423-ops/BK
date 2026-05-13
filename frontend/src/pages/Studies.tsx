@@ -44,6 +44,7 @@ const Studies: React.FC = () => {
     studyDescription: '',
   });
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; fileName: string } | null>(null);
   const [uploadResults, setUploadResults] = useState<Array<{ fileName: string; success: boolean; message: string }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,6 +89,35 @@ const Studies: React.FC = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setSelectedFiles(Array.from(e.target.files));
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      setSelectedFiles(Array.from(files));
     }
   };
 
@@ -301,29 +331,43 @@ const Studies: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('study.selectFiles')} <span className="text-red-500">*</span></label>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-primary-400 transition-colors">
+            <div
+              className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors ${
+                isDragging
+                  ? 'border-primary-500 bg-primary-50'
+                  : 'border-gray-300 hover:border-primary-400'
+              }`}
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <div className="space-y-2 text-center">
-                <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
-                <div className="flex text-sm text-gray-600">
-                  <label
-                    htmlFor="file-upload"
-                    className="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none"
-                  >
-                    <span>{t('study.selectFiles')}</span>
-                    <input
-                      id="file-upload"
-                      ref={fileInputRef}
-                      name="file-upload"
-                      type="file"
-                      className="sr-only"
-                      accept=".dcm,.dicom,*/*"
-                      multiple
-                      onChange={handleFileSelect}
-                      disabled={!!uploadProgress}
-                    />
-                  </label>
-                  <p className="pl-1">{t('study.dragFiles')}</p>
-                </div>
+                <CloudArrowUpIcon className={`mx-auto h-12 w-12 transition-colors ${isDragging ? 'text-primary-500' : 'text-gray-400'}`} />
+                {isDragging ? (
+                  <p className="text-sm font-medium text-primary-600">{t('study.dropHere')}</p>
+                ) : (
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="file-upload"
+                      className="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none"
+                    >
+                      <span>{t('study.selectFiles')}</span>
+                      <input
+                        id="file-upload"
+                        ref={fileInputRef}
+                        name="file-upload"
+                        type="file"
+                        className="sr-only"
+                        accept=".dcm,.dicom,*/*"
+                        multiple
+                        onChange={handleFileSelect}
+                        disabled={!!uploadProgress}
+                      />
+                    </label>
+                    <p className="pl-1">{t('study.dragFiles')}</p>
+                  </div>
+                )}
                 <p className="text-xs text-gray-500">{t('study.fileSupport')}</p>
               </div>
             </div>

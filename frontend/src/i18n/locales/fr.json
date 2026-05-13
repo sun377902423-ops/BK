@@ -160,6 +160,7 @@
     "studyDescriptionPlaceholder": "Ex. : Scanner thoracique",
     "selectFiles": "Sélectionner des fichiers",
     "dragFiles": "ou glissez les fichiers ici",
+    "dropHere": "Déposez les fichiers pour télécharger",
     "fileSupport": "Prend en charge les fichiers DICOM (.dcm), sélection multiple, 100 Mo max par fichier",
     "selectedFiles": "{{count}} fichier(s) sélectionné(s) :",
     "uploading": "Téléchargement : {{name}}",
