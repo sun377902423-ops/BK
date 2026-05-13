@@ -263,7 +263,7 @@ const PatientDetail: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {patient.consultations.map((c) => (
-                      <tr key={c.id} className="hover:bg-gray-50">
+                      <tr key={c.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/consultations/${c.id}`)}>
                         <td className="px-6 py-4 text-sm font-medium text-primary-600">{c.title}</td>
                         <td className="px-6 py-4 text-sm"><StatusBadge status={c.status} type="consultation" /></td>
                         <td className="px-6 py-4 text-sm text-gray-600">{c.participants?.length || 0}</td>

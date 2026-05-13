@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { ArrowRightOnRectangleIcon, UserCircleIcon, LanguageIcon } from '@heroicons/react/24/outline';
+import NotificationBell from './NotificationBell';
 
 const languages = [
   { code: 'zh', label: '中文' },
@@ -79,6 +80,10 @@ const Header: React.FC = () => {
             </div>
           )}
         </div>
+
+        <div className="h-8 w-px bg-gray-200" />
+
+        <NotificationBell />
 
         <div className="h-8 w-px bg-gray-200" />
 

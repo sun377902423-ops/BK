@@ -11,6 +11,8 @@ export default function StatusBadge({ status, type }: StatusBadgeProps) {
 
   const consultationMap: Record<string, { label: string; className: string }> = {
     CREATED: { label: t('status.created'), className: 'bg-blue-100 text-blue-800' },
+    INVITED: { label: t('status.invited'), className: 'bg-yellow-100 text-yellow-800' },
+    SCHEDULED: { label: t('status.scheduled'), className: 'bg-purple-100 text-purple-800' },
     IN_PROGRESS: { label: t('status.inProgress'), className: 'bg-green-100 text-green-800' },
     COMPLETED: { label: t('status.completed'), className: 'bg-gray-100 text-gray-800' },
     CANCELLED: { label: t('status.cancelled'), className: 'bg-red-100 text-red-800' },

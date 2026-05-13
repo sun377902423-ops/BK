@@ -55,7 +55,7 @@ export async function patientRoutes(fastify: FastifyInstance) {
         createdBy: { select: { id: true, realName: true, username: true } },
         studies: true,
         consultations: { include: { participants: { include: { user: { select: { id: true, realName: true } } } } } },
-        grantedAccesses: { where: { userId } },
+        accessGrants: { where: { userId } },
       },
     });
 
@@ -65,7 +65,7 @@ export async function patientRoutes(fastify: FastifyInstance) {
 
     const isOwner = patient.createdById === userId;
     const isAdmin = userRole === 'ADMIN';
-    const hasAccess = patient.grantedAccesses && patient.grantedAccesses.length > 0;
+    const hasAccess = patient.accessGrants && patient.accessGrants.length > 0;
     const isLegacy = !patient.createdById;
 
     if (!isOwner && !isAdmin && !hasAccess && !isLegacy) {

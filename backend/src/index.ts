@@ -15,6 +15,7 @@ import { hospitalRoutes } from './routes/hospitals.js';
 import { userRoutes } from './routes/users.js';
 import { reportRoutes } from './routes/reports.js';
 import { roleRoutes } from './routes/roles.js';
+import { notificationRoutes } from './routes/notifications.js';
 
 dotenv.config();
 
@@ -60,6 +61,7 @@ await fastify.register(hospitalRoutes, { prefix: '/api' });
 await fastify.register(userRoutes, { prefix: '/api' });
 await fastify.register(reportRoutes, { prefix: '/api' });
 await fastify.register(roleRoutes, { prefix: '/api' });
+await fastify.register(notificationRoutes, { prefix: '/api' });
 
 fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };

@@ -9,6 +9,7 @@ import Patients from './pages/Patients';
 import PatientDetail from './pages/PatientDetail';
 import Studies from './pages/Studies';
 import Consultations from './pages/Consultations';
+import ConsultationDetail from './pages/ConsultationDetail';
 import Users from './pages/Users';
 import Hospitals from './pages/Hospitals';
 import Reports from './pages/Reports';
@@ -51,6 +52,7 @@ const App: React.FC = () => {
         <Route path="/patients/:id" element={<AuthorizedRoute permissions={[PERMISSIONS.PATIENT_READ]}><PatientDetail /></AuthorizedRoute>} />
         <Route path="/studies" element={<AuthorizedRoute permissions={[PERMISSIONS.STUDY_LIST]}><Studies /></AuthorizedRoute>} />
         <Route path="/consultations" element={<AuthorizedRoute permissions={[PERMISSIONS.CONSULTATION_LIST]}><Consultations /></AuthorizedRoute>} />
+        <Route path="/consultations/:id" element={<AuthorizedRoute permissions={[PERMISSIONS.CONSULTATION_LIST]}><ConsultationDetail /></AuthorizedRoute>} />
         <Route path="/users" element={<AuthorizedRoute permissions={[PERMISSIONS.USER_LIST]}><Users /></AuthorizedRoute>} />
         <Route path="/hospitals" element={<AuthorizedRoute permissions={[PERMISSIONS.HOSPITAL_LIST]}><Hospitals /></AuthorizedRoute>} />
         <Route path="/reports" element={<AuthorizedRoute permissions={[PERMISSIONS.REPORT_LIST]}><Reports /></AuthorizedRoute>} />

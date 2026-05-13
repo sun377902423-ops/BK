@@ -159,7 +159,7 @@ const Dashboard: React.FC = () => {
                   {pending.pendingConsultations.map((item) => (
                     <Link
                       key={item.id}
-                      to={`/consultations`}
+                      to={`/consultations/${item.id}`}
                       className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg mb-2 hover:bg-yellow-100 transition-colors"
                     >
                       <div className="flex items-center space-x-3">
