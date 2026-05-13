@@ -55,6 +55,17 @@ docker compose up -d
 - ✅ 审计日志
 - ✅ HTTPS 加密传输
 
-## 部署
+## 文档
 
-详细部署指南见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- [部署说明](docs/DEPLOYMENT.md) - 完整部署流程和服务器配置
+- [操作调试记录](docs/CHANGELOG.md) - 服务器操作步骤和问题排查记录
+- [快速开始](docs/QUICKSTART.md) - 本地开发环境搭建
+- [项目总结](docs/PROJECT_SUMMARY.md) - 功能清单和技术架构
+
+## 更新原则
+
+```
+本地开发 → 服务器部署验证 → 同步到 GitHub
+```
+
+所有代码变更必须先在服务器上验证通过，再同步到 GitHub。操作步骤记录在 [docs/CHANGELOG.md](docs/CHANGELOG.md)。
