@@ -3,6 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  LiveKitRoom,
+  VideoConference,
+} from '@livekit/components-react';
+import '@livekit/components-styles';
+import {
   ArrowLeftIcon,
   VideoCameraIcon,
   PlayIcon,
@@ -28,6 +33,7 @@ import Modal from '@/components/ui/Modal';
 import StatusBadge from '@/components/ui/StatusBadge';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import PermissionGuard from '@/components/ui/PermissionGuard';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 interface Participant {
   id: number;
@@ -37,7 +43,7 @@ interface Participant {
   invitedAt: string;
   respondedAt: string | null;
   joinedAt: string | null;
-  user: { id: number; realName: string; username: string; role?: { name: string; displayName: string } };
+  user: { id: number; realName: string; username: string; avatarUrl?: string; role?: { name: string; displayName: string } };
 }
 
 interface Message {
@@ -46,7 +52,7 @@ interface Message {
   content: string;
   type: string;
   createdAt: string;
-  user: { id: number; realName: string; username: string };
+  user: { id: number; realName: string; username: string; avatarUrl?: string };
 }
 
 interface Study {
@@ -89,14 +95,7 @@ interface User {
   username: string;
 }
 
-declare global {
-  interface Window {
-    JitsiMeetExternalAPI: any;
-  }
-}
-
-const JITSI_SERVER = (window as any).__JITSI_SERVER__ || window.location.host;
-const JITSI_DOMAIN = `${JITSI_SERVER}/jitsi`;
+const LIVEKIT_SERVER = (window as any).__LIVEKIT_SERVER__ || window.location.host;
 
 const ConsultationDetail: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -104,10 +103,7 @@ const ConsultationDetail: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
-  const jitsiContainerRef = useRef<HTMLDivElement>(null);
-  const jitsiApiRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const jitsiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [addParticipantOpen, setAddParticipantOpen] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [selectedRoles, setSelectedRoles] = useState<Record<number, string>>({});
@@ -116,8 +112,11 @@ const ConsultationDetail: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [imageViewerExpanded, setImageViewerExpanded] = useState(false);
-  const [jitsiLoading, setJitsiLoading] = useState(false);
-  const [jitsiError, setJitsiError] = useState('');
+  const [videoToken, setVideoToken] = useState('');
+  const [videoConnecting, setVideoConnecting] = useState(false);
+  const [videoError, setVideoError] = useState('');
+  const [videoConnected, setVideoConnected] = useState(false);
+  const videoTokenRef = useRef('');
 
   const { data: consultation, isLoading } = useQuery<Consultation>({
     queryKey: ['consultation', id],
@@ -197,196 +196,33 @@ const ConsultationDetail: React.FC = () => {
     },
   });
 
-  const initJitsi = useCallback(() => {
-    if (!consultation || !jitsiContainerRef.current) return;
-    if (jitsiApiRef.current) return;
-
-    setJitsiLoading(true);
-    setJitsiError('');
-
-    const scriptSrc = `${window.location.protocol}//${JITSI_SERVER}/jitsi/external_api.js`;
-    const existingScript = document.querySelector(`script[src="${scriptSrc}"]`);
-
-    const startJitsi = () => {
-      if (!window.JitsiMeetExternalAPI || !jitsiContainerRef.current || jitsiApiRef.current) {
-        setJitsiError(t('consultation.jitsiLoadFailed'));
-        setJitsiLoading(false);
-        return;
-      }
-      const displayName = currentUser?.realName || currentUser?.username || 'Doctor';
-      try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        jitsiApiRef.current = new window.JitsiMeetExternalAPI(JITSI_DOMAIN, {
-          roomName: consultation.jitsiRoomName,
-          parentNode: jitsiContainerRef.current,
-          width: '100%',
-          height: '100%',
-          configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            prejoinPageEnabled: false,
-            requireDisplayName: true,
-            hosts: {
-              domain: '115.29.203.40',
-              muc: 'conference.115.29.203.40',
-              focus: 'focus.115.29.203.40',
-            },
-            bosh: `//${window.location.host}/http-bind`,
-            websocket: `${protocol}//${window.location.host}/xmpp-websocket`,
-            resolution: 480,
-            constraints: {
-              video: {
-                aspectRatio: 16 / 9,
-                height: { ideal: 480, max: 480, min: 180 },
-                width: { ideal: 858, max: 858, min: 320 },
-              },
-            },
-            videoQuality: {
-              maxBitratesVideo: {
-                low: 200000,
-                standard: 500000,
-                high: 800000,
-              },
-              minHeightForQualityLvl: {
-                180: 'low',
-                360: 'standard',
-                480: 'high',
-              },
-            },
-            enableLayerSuspension: true,
-            enableRemb: true,
-            enableTcc: true,
-            disableSimulcast: false,
-            p2p: {
-              enabled: true,
-              preferH264: true,
-              disableH264: false,
-            },
-            desktopSharingFrameRate: {
-              min: 5,
-              max: 15,
-            },
-          },
-          interfaceConfigOverwrite: {
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUESTS: false,
-            DEFAULT_BACKGROUND: '#1a1a2e',
-          },
-          userInfo: { displayName },
-        });
-
-        const jitsiApi = jitsiApiRef.current;
-
-        jitsiApi.addEventListener('videoConferenceJoined', () => {
-          setJitsiLoading(false);
-          if (jitsiTimeoutRef.current) {
-            clearTimeout(jitsiTimeoutRef.current);
-            jitsiTimeoutRef.current = null;
-          }
-          jitsiApi.executeCommand('displayName', displayName);
-          if (currentUser?.id) {
-            api.put(`/api/consultations/${id}/participants/${currentUser.id}/join`).catch(() => {});
-          }
-          queryClient.invalidateQueries({ queryKey: ['consultation', id] });
-        });
-
-        jitsiApi.addEventListener('participantJoined', () => {
-          queryClient.invalidateQueries({ queryKey: ['consultation', id] });
-        });
-
-        jitsiApi.addEventListener('participantLeft', (data: any) => {
-          const leftId = data?.id;
-          if (leftId && currentUser?.id) {
-            api.put(`/api/consultations/${id}/participants/${currentUser.id}/leave`).catch(() => {});
-          }
-          queryClient.invalidateQueries({ queryKey: ['consultation', id] });
-        });
-
-        jitsiApi.addEventListener('connectionEstablished', () => {
-          setJitsiLoading(false);
-          if (jitsiTimeoutRef.current) {
-            clearTimeout(jitsiTimeoutRef.current);
-            jitsiTimeoutRef.current = null;
-          }
-        });
-
-        jitsiApi.addEventListener('connectionFailed', () => {
-          setJitsiError(t('consultation.jitsiLoadFailed'));
-          setJitsiLoading(false);
-          if (jitsiTimeoutRef.current) {
-            clearTimeout(jitsiTimeoutRef.current);
-            jitsiTimeoutRef.current = null;
-          }
-        });
-
-        const iframe = jitsiContainerRef.current.querySelector('iframe');
-        if (iframe) {
-          iframe.setAttribute('allow', 'camera; microphone; fullscreen; autoplay');
-          iframe.setAttribute('allowfullscreen', 'true');
-        }
-
-        jitsiTimeoutRef.current = setTimeout(() => {
-          if (jitsiLoading && !jitsiApiRef.current) {
-            setJitsiError(t('consultation.jitsiLoadFailed'));
-            setJitsiLoading(false);
-          }
-        }, 30000);
-      } catch (e) {
-        setJitsiError(t('consultation.jitsiLoadFailed'));
-        setJitsiLoading(false);
-      }
-    };
-
-    if (existingScript) {
-      if (window.JitsiMeetExternalAPI) {
-        startJitsi();
-      } else {
-        setJitsiError(t('consultation.jitsiLoadFailed'));
-        setJitsiLoading(false);
-      }
-    } else {
-      const script = document.createElement('script');
-      script.src = scriptSrc;
-      script.async = true;
-      script.onload = startJitsi;
-      script.onerror = () => {
-        setJitsiError(t('consultation.jitsiLoadFailed'));
-        setJitsiLoading(false);
-      };
-      document.head.appendChild(script);
-
-      jitsiTimeoutRef.current = setTimeout(() => {
-        if (jitsiLoading && !jitsiApiRef.current) {
-          setJitsiError(t('consultation.jitsiLoadFailed'));
-          setJitsiLoading(false);
-        }
-      }, 30000);
+  const fetchVideoToken = useCallback(async () => {
+    if (!currentUser) return;
+    try {
+      setVideoConnecting(true);
+      setVideoError('');
+      setVideoConnected(false);
+      const res = await api.get(`/api/consultations/${id}/video-token`);
+      const token = res.data.token;
+      videoTokenRef.current = token;
+      setVideoToken(token);
+    } catch (e) {
+      setVideoError(t('consultation.videoConnectFailed'));
+      setVideoConnecting(false);
     }
-  }, [consultation, currentUser, t, jitsiLoading, id, queryClient]);
-
-  const disposeJitsi = useCallback(() => {
-    if (jitsiTimeoutRef.current) {
-      clearTimeout(jitsiTimeoutRef.current);
-      jitsiTimeoutRef.current = null;
-    }
-    if (jitsiApiRef.current) {
-      jitsiApiRef.current.dispose();
-      jitsiApiRef.current = null;
-    }
-  }, []);
+  }, [currentUser, t, id]);
 
   useEffect(() => {
-    if (consultation?.status === 'IN_PROGRESS') {
-      const timer = setTimeout(initJitsi, 500);
-      return () => clearTimeout(timer);
-    } else {
-      disposeJitsi();
+    if (consultation?.status === 'IN_PROGRESS' && !videoTokenRef.current) {
+      fetchVideoToken();
+    } else if (consultation?.status !== 'IN_PROGRESS') {
+      videoTokenRef.current = '';
+      setVideoToken('');
+      setVideoConnecting(false);
+      setVideoError('');
+      setVideoConnected(false);
     }
-  }, [consultation?.status, initJitsi, disposeJitsi]);
-
-  useEffect(() => {
-    return () => { disposeJitsi(); };
-  }, [disposeJitsi]);
+  }, [consultation?.status]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -400,7 +236,9 @@ const ConsultationDetail: React.FC = () => {
     if (currentUser?.id) {
       api.put(`/api/consultations/${id}/participants/${currentUser.id}/leave`).catch(() => {});
     }
-    disposeJitsi();
+    videoTokenRef.current = '';
+    setVideoToken('');
+    setVideoConnected(false);
     statusMutation.mutate({ status: 'COMPLETED' });
   };
 
@@ -408,7 +246,9 @@ const ConsultationDetail: React.FC = () => {
     if (currentUser?.id) {
       api.put(`/api/consultations/${id}/participants/${currentUser.id}/leave`).catch(() => {});
     }
-    disposeJitsi();
+    videoTokenRef.current = '';
+    setVideoToken('');
+    setVideoConnected(false);
     statusMutation.mutate({ status: 'CANCELLED' });
   };
 
@@ -509,20 +349,60 @@ const ConsultationDetail: React.FC = () => {
 
   const renderVideoArea = () => (
     <div className="flex-1 relative bg-gray-900">
-      <div ref={jitsiContainerRef} className="absolute inset-0" />
-      {jitsiLoading && (
+      {videoToken ? (
+        <LiveKitRoom
+          token={videoToken}
+          serverUrl={`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${LIVEKIT_SERVER}/livekit`}
+          connect={true}
+          audio={true}
+          video={true}
+          onConnected={() => {
+            setVideoConnecting(false);
+            setVideoError('');
+            setVideoConnected(true);
+            if (currentUser?.id) {
+              api.put(`/api/consultations/${id}/participants/${currentUser.id}/join`).catch(() => {});
+            }
+            queryClient.invalidateQueries({ queryKey: ['consultation', id] });
+          }}
+          onDisconnected={() => {
+            setVideoConnecting(false);
+            setVideoConnected(false);
+            if (currentUser?.id) {
+              api.put(`/api/consultations/${id}/participants/${currentUser.id}/leave`).catch(() => {});
+            }
+            queryClient.invalidateQueries({ queryKey: ['consultation', id] });
+          }}
+          onError={(error) => {
+            console.error('LiveKit connection error:', error);
+            if (!videoConnected) {
+              setVideoError(t('consultation.videoConnectFailed'));
+            }
+            setVideoConnecting(false);
+          }}
+          data-lk-theme="default"
+          style={{ height: '100%' }}
+        >
+          <VideoConference />
+        </LiveKitRoom>
+      ) : null}
+      {videoConnecting && !videoConnected && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white z-10">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mb-4" />
-          <p className="text-gray-300">{t('consultation.jitsiConnecting')}</p>
+          <p className="text-gray-300">{t('consultation.videoConnecting')}</p>
         </div>
       )}
-      {jitsiError && (
+      {videoError && !videoConnected && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white z-10">
           <VideoCameraIcon className="w-16 h-16 text-gray-500 mb-4" />
-          <p className="text-red-400 mb-2">{jitsiError}</p>
-          <p className="text-gray-400 text-sm mb-4">{t('consultation.jitsiLoadFailedDesc')}</p>
+          <p className="text-red-400 mb-2">{videoError}</p>
           <button
-            onClick={() => { setJitsiError(''); initJitsi(); }}
+            onClick={() => {
+              videoTokenRef.current = '';
+              setVideoToken('');
+              setVideoError('');
+              fetchVideoToken();
+            }}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"
           >
             {t('consultation.retryVideo')}
@@ -917,12 +797,13 @@ const ConsultationDetail: React.FC = () => {
                     <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
                       <div className="flex items-center space-x-2 min-w-0">
                         <div className="relative flex-shrink-0">
-                          <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                            <span className="text-xs font-medium text-primary-700">
-                              {(p.user.realName || p.user.username).charAt(0)}
-                            </span>
-                          </div>
-                          <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${getStatusDotColor(p.status)}`} />
+                          <UserAvatar
+                            src={p.user.avatarUrl}
+                            name={p.user.realName || p.user.username}
+                            size="sm"
+                            showStatus
+                            statusColor={getStatusDotColor(p.status)}
+                          />
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">{p.user.realName || p.user.username}</p>
@@ -950,7 +831,15 @@ const ConsultationDetail: React.FC = () => {
                 {consultation.messages?.map((msg) => {
                   const isMine = msg.userId === currentUser?.id;
                   return (
-                    <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                    <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'} items-end space-x-2`}>
+                      {!isMine && (
+                        <UserAvatar
+                          src={msg.user.avatarUrl}
+                          name={msg.user.realName || msg.user.username}
+                          size="xs"
+                          className="flex-shrink-0"
+                        />
+                      )}
                       <div className={`max-w-[85%] rounded-lg px-3 py-2 ${
                         isMine ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-900'
                       }`}>
@@ -964,6 +853,14 @@ const ConsultationDetail: React.FC = () => {
                           {new Date(msg.createdAt).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
+                      {isMine && (
+                        <UserAvatar
+                          src={currentUser?.avatarUrl}
+                          name={currentUser?.realName || currentUser?.username || ''}
+                          size="xs"
+                          className="flex-shrink-0"
+                        />
+                      )}
                     </div>
                   );
                 })}

@@ -13,6 +13,8 @@ import {
   DocumentTextIcon,
   KeyIcon,
   ShieldCheckIcon,
+  CommandLineIcon,
+  ComputerDesktopIcon,
 } from '@heroicons/react/24/outline';
 
 const Sidebar: React.FC = () => {
@@ -30,6 +32,8 @@ const Sidebar: React.FC = () => {
     { name: t('nav.roles'), path: '/roles', icon: ShieldCheckIcon, permissions: [PERMISSIONS.USER_ASSIGN_ROLE] },
     { name: t('nav.users'), path: '/users', icon: UserGroupIcon, permissions: [PERMISSIONS.USER_LIST] },
     { name: t('nav.hospitals'), path: '/hospitals', icon: BuildingOffice2Icon, permissions: [PERMISSIONS.HOSPITAL_LIST] },
+    { name: t('nav.devices'), path: '/devices', icon: ComputerDesktopIcon, permissions: [PERMISSIONS.DEVICE_LIST] },
+    { name: t('nav.systemLogs'), path: '/system-logs', icon: CommandLineIcon, permissions: [PERMISSIONS.SYSTEM_AUDIT] },
   ];
 
   const menuItems = allMenuItems.filter(

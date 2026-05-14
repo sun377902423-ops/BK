@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { authorize } from '../lib/authorize.js';
 import { PERMISSIONS } from '../lib/permissions.js';
 import { v4 as uuidv4 } from 'uuid';
+import { AccessToken } from 'livekit-server-sdk';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   CREATED: ['INVITED', 'SCHEDULED', 'IN_PROGRESS', 'CANCELLED'],
@@ -43,10 +44,10 @@ export async function consultationRoutes(fastify: FastifyInstance) {
       where,
       include: {
         patient: { select: { id: true, name: true, patientId: true } },
-        createdBy: { select: { id: true, realName: true, username: true } },
+        createdBy: { select: { id: true, realName: true, username: true, avatarUrl: true } },
         participants: {
           include: {
-            user: { select: { id: true, realName: true, username: true, role: { select: { name: true } } } },
+            user: { select: { id: true, realName: true, username: true, avatarUrl: true, role: { select: { name: true } } } },
           },
         },
         study: { select: { id: true, orthancStudyId: true, modality: true } },
@@ -66,16 +67,16 @@ export async function consultationRoutes(fastify: FastifyInstance) {
         patient: true,
         study: true,
         hospital: true,
-        createdBy: { select: { id: true, realName: true, username: true } },
+        createdBy: { select: { id: true, realName: true, username: true, avatarUrl: true } },
         participants: {
           include: {
-            user: { select: { id: true, realName: true, username: true, role: { select: { name: true, displayName: true } } } },
+            user: { select: { id: true, realName: true, username: true, avatarUrl: true, role: { select: { name: true, displayName: true } } } },
           },
           orderBy: { role: 'asc' },
         },
         messages: {
           include: {
-            user: { select: { id: true, realName: true, username: true } },
+            user: { select: { id: true, realName: true, username: true, avatarUrl: true } },
           },
           orderBy: { createdAt: 'asc' },
         },
@@ -88,6 +89,45 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     });
     if (!consultation) return reply.status(404).send({ error: '会诊不存在' });
     return consultation;
+  });
+
+  fastify.get('/consultations/:id/video-token', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_JOIN)],
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const userId = request.user.userId;
+    const consultationId = parseInt(id);
+
+    const consultation = await prisma.consultation.findUnique({
+      where: { id: consultationId },
+    });
+
+    if (!consultation) return reply.status(404).send({ error: '会诊不存在' });
+
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+    const livekitUrl = process.env.LIVEKIT_URL || 'ws://livekit:7880';
+
+    if (!apiKey || !apiSecret) {
+      return reply.status(500).send({ error: 'LiveKit 配置缺失' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { realName: true, username: true },
+    });
+
+    const participantIdentity = `user_${userId}`;
+    const participantName = user?.realName || user?.username || `User ${userId}`;
+
+    const token = new AccessToken(apiKey, apiSecret, {
+      identity: participantIdentity,
+      name: participantName,
+    });
+
+    token.addGrant({ roomJoin: true, room: consultation.jitsiRoomName });
+
+    return { token: await token.toJwt(), url: livekitUrl };
   });
 
   fastify.post('/consultations', {
@@ -128,10 +168,10 @@ export async function consultationRoutes(fastify: FastifyInstance) {
       },
       include: {
         patient: { select: { id: true, name: true, patientId: true } },
-        createdBy: { select: { id: true, realName: true, username: true } },
+        createdBy: { select: { id: true, realName: true, username: true, avatarUrl: true } },
         participants: {
           include: {
-            user: { select: { id: true, realName: true, username: true } },
+            user: { select: { id: true, realName: true, username: true, avatarUrl: true } },
           },
         },
       },
@@ -225,7 +265,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
       data: updateData,
       include: {
         patient: { select: { id: true, name: true } },
-        participants: { include: { user: { select: { id: true, realName: true } } } },
+        participants: { include: { user: { select: { id: true, realName: true, avatarUrl: true } } } },
       },
     });
 
@@ -343,7 +383,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
       where: { id: consultationId },
       include: {
         participants: {
-          include: { user: { select: { id: true, realName: true, username: true } } },
+          include: { user: { select: { id: true, realName: true, username: true, avatarUrl: true } } },
         },
       },
     });
@@ -470,7 +510,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     const messages = await prisma.consultationMessage.findMany({
       where: { consultationId: parseInt(id) },
       include: {
-        user: { select: { id: true, realName: true, username: true } },
+        user: { select: { id: true, realName: true, username: true, avatarUrl: true } },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -502,7 +542,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
         type: data.type || 'TEXT',
       },
       include: {
-        user: { select: { id: true, realName: true, username: true } },
+        user: { select: { id: true, realName: true, username: true, avatarUrl: true } },
       },
     });
     return message;

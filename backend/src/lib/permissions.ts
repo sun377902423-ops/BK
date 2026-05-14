@@ -43,6 +43,11 @@ export const PERMISSIONS = {
 
   SYSTEM_CONFIG: 'system:config',
   SYSTEM_AUDIT: 'system:audit',
+
+  DEVICE_LIST: 'device:list',
+  DEVICE_CREATE: 'device:create',
+  DEVICE_UPDATE: 'device:update',
+  DEVICE_DELETE: 'device:delete',
 } as const;
 
 export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];
@@ -125,6 +130,15 @@ export const PERMISSION_GROUPS = {
       PERMISSIONS.SYSTEM_AUDIT,
     ],
   },
+  device: {
+    label: '设备管理',
+    permissions: [
+      PERMISSIONS.DEVICE_LIST,
+      PERMISSIONS.DEVICE_CREATE,
+      PERMISSIONS.DEVICE_UPDATE,
+      PERMISSIONS.DEVICE_DELETE,
+    ],
+  },
 };
 
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
@@ -178,6 +192,9 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     PERMISSIONS.STUDY_LIST,
     PERMISSIONS.STUDY_READ,
     PERMISSIONS.STUDY_UPLOAD,
+    PERMISSIONS.DEVICE_LIST,
+    PERMISSIONS.DEVICE_CREATE,
+    PERMISSIONS.DEVICE_UPDATE,
     PERMISSIONS.ACCESS_REQUEST_CREATE,
     PERMISSIONS.HOSPITAL_LIST,
   ],

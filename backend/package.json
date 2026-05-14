@@ -34,7 +34,9 @@
     "fastify-plugin": "^4.5.1",
     "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
+    "livekit-server-sdk": "^2.9.0",
     "node-fetch": "^3.3.2",
+    "sharp": "^0.33.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

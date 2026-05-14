@@ -197,17 +197,24 @@ model Study {
 }
 
 model ImagingDevice {
-  id        Int       @id @default(autoincrement())
-  name      String
-  modality  String
-  aeTitle   String
-  host      String
-  port      Int
-  hospitalId Int?
-  hospital  Hospital? @relation(fields: [hospitalId], references: [id])
-  status    String    @default("active")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            Int       @id @default(autoincrement())
+  name          String
+  modality      String
+  aeTitle       String
+  host          String
+  port          Int       @default(104)
+  hospitalId    Int?
+  hospital      Hospital? @relation(fields: [hospitalId], references: [id])
+  status        String    @default("active")
+  manufacturer  String?
+  model         String?
+  serialNumber  String?
+  localIp       String?
+  routerMappingPort Int?
+  description   String?
+  lastConnectedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   studies Study[]
 

@@ -1,121 +1,117 @@
-# BKSYS 远程会诊系统 - 项目总结
+# BKSYS-MED 远程会诊系统 - 项目总结（Beta 1）
 
 ## 项目概述
 
-这是一个完整的跨国医疗远程会诊系统，实现了从布基纳法索到中国的远程医疗影像会诊功能。
+布基纳法索 → 中国 跨国远程医疗影像会诊系统，基于 Starlink 卫星网络，实现国际专家远程视频会诊、DICOM 影像实时共享、协作标注与会诊报告生成。
 
-## 已完成功能
+## Beta 1 已完成功能
 
 ### 后端服务 (backend/)
 
-#### 核心技术栈
-- **框架**: Fastify 4.x (高性能 Node.js 框架)
-- **ORM**: Prisma 5.x (类型安全的数据库访问)
-- **认证**: JWT (JSON Web Token)
-- **实时通信**: WebSocket 支持
-- **安全**: Helmet, Rate Limiting, CORS
+#### API 模块（11个）
 
-#### 已实现的 API 模块
-1. **认证模块** (`/api/auth`)
-   - 用户登录
-   - 获取当前用户信息
-   - JWT Token 认证
+| 模块 | 路由 | 功能 |
+|------|------|------|
+| 认证 | `/api/auth` | JWT 登录、获取当前用户、权限列表 |
+| 患者 | `/api/patients` | CRUD、病例密码、访问申请 |
+| 影像检查 | `/api/studies` | 列表、上传、关联患者 |
+| 远程会诊 | `/api/consultations` | 生命周期管理、邀请、状态机、消息 |
+| 影像设备 | `/api/devices` | CRUD、Orthanc 同步、DICOM Echo、网络信息 |
+| 报告 | `/api/reports` | CRUD、提交/签署/审批流程 |
+| 用户 | `/api/users` | CRUD、头像上传（Sharp 压缩）、个人资料 |
+| 医院 | `/api/hospitals` | CRUD |
+| 角色 | `/api/roles` | 角色权限管理 |
+| 通知 | `/api/notifications` | 未读计数、标记已读 |
+| 系统日志 | `/api/logs` | 服务器日志查看 |
 
-2. **患者管理** (`/api/patients`)
-   - 获取所有患者列表
-   - 根据 ID 获取患者详情
-   - 创建新患者
-   - 更新患者信息
+#### 数据模型（20+ 表）
 
-3. **仪表盘** (`/api/dashboard`)
-   - 获取统计数据 (用户数、患者数、检查数、会诊数)
+- User, Role, Hospital, Patient, Study, ImagingDevice
+- Consultation, ConsultationParticipant, ConsultationMessage
+- Report, Attachment, ReportTemplate
+- MedicalRecord, MedicalOrder, Diagnosis
+- AuditLog, OperationLog, Notification
+- PatientAccessRequest, PatientAccess, SystemConfig, BackupRecord
 
-#### 数据模型
-完整实现了 20+ 个数据库表，包括：
-- 用户、角色、权限
-- 患者、检查、会诊
-- 报告、医疗记录、医嘱
-- 审计日志、通知、备份记录
-- 医院、影像设备、系统配置
+#### 权限系统
+
+- 4 种角色：ADMIN, DOCTOR_LOCAL, DOCTOR_REMOTE, TECHNICIAN
+- 25+ 项细粒度权限
+- 5 级权限控制：后端路由 → 前端路由 → 菜单 → 按钮 → 数据
 
 ### 前端应用 (frontend/)
 
-#### 核心技术栈
-- **框架**: React 18
-- **构建工具**: Vite 5.x
-- **样式**: Tailwind CSS 3.x
-- **状态管理**: React Query 5.x
-- **路由**: React Router 6.x
-- **语言**: TypeScript 5.x
+#### 页面（14个）
 
-#### 已实现的页面和组件
-1. **登录页面** - 用户登录界面
-2. **主布局** - 响应式布局，含侧边栏和顶部导航
-3. **仪表盘** - 系统概览和统计卡片
-4. **患者管理** - 患者列表和管理界面
-5. **影像检查** - 检查列表页面
-6. **远程会诊** - 会诊管理页面
+| 页面 | 功能 |
+|------|------|
+| Login | 用户登录 |
+| Dashboard | 仪表盘、统计数据 |
+| Patients | 患者列表、搜索 |
+| PatientDetail | 患者详情、关联检查/会诊 |
+| Studies | 影像检查列表 |
+| Consultations | 会诊列表、状态筛选 |
+| ConsultationDetail | 会诊详情、视频通话、聊天 |
+| ImagingDevices | 设备管理、DICOM Echo、网络配置 |
+| Reports | 报告管理 |
+| Users | 用户管理 |
+| Hospitals | 医院管理 |
+| Roles | 角色权限管理 |
+| AccessRequests | 访问申请 |
+| SystemLogs | 系统日志查看 |
+
+#### UI 组件
+
+- UserAvatar：头像组件（4 种尺寸、状态指示）
+- PermissionGuard：权限控制组件
+- Modal：弹窗组件
+- PageHeader：页面头部
+- EmptyState：空状态
+- LoadingSpinner：加载动画
+- ConfirmDialog：确认对话框
+- StatusBadge：状态标签
 
 ### 部署配置 (deploy/)
 
-#### Docker Compose 服务
-- `postgres` - PostgreSQL 16 数据库
-- `redis` - Redis 7 缓存/会话存储
-- `orthanc` - Orthanc 1.12.4 PACS 服务器
-- `backend` - 后端 API 服务
-- `frontend` - 前端 Web 应用
-- `ohif-viewer` - OHIF 医学影像查看器
-- `nginx` - Nginx 反向代理
+- 8 个 Docker 服务编排
+- Nginx 反向代理（HTTP + HTTPS）
+- Orthanc PACS（DICOM 接收 + DICOMweb）
+- LiveKit 视频服务
+- OHIF Viewer 品牌定制
 
-#### 部署脚本
-- `setup.sh` - 项目初始化和环境检查脚本
+## 技术亮点
 
-## 项目结构
+### Starlink 网络适配
 
-```
-bksys2/
-├── backend/                 # 后端服务
-│   ├── src/
-│   │   ├── routes/         # API 路由
-│   │   ├── prisma/         # 数据模型和种子
-│   │   └── index.ts        # 入口文件
-│   ├── Dockerfile
-│   ├── package.json
-│   └── tsconfig.json
-├── frontend/               # 前端应用
-│   ├── src/
-│   │   ├── components/     # 可复用组件
-│   │   ├── pages/          # 页面组件
-│   │   └── styles/         # 全局样式
-│   ├── Dockerfile
-│   ├── package.json
-│   └── vite.config.ts
-├── deploy/                 # 部署配置
-│   ├── docker-compose.yml
-│   ├── nginx/
-│   └── scripts/
-├── docs/                   # 文档
-└── README.md
-```
+- 影像设备管理支持局域网 IP + 路由映射端口
+- CT 设备 5 步配置指南
+- DICOM Echo 连通性测试
+- Orthanc 模态自动同步
 
-## 下一步开发建议
+### 影像设备管理
 
-### 优先级高 (P0)
-1. **会诊管理 API** - 完整的会诊 CRUD 和状态管理
-2. **OHIF Viewer 集成** - 医学影像查看和标注
-3. **Jitsi Meet 集成** - 视频会议功能
-4. **报告管理模块** - 会诊报告的创建和审核流程
+- 支持 CT/MR/DR/US 等 12 种模态
+- 设备创建/更新时自动同步到 Orthanc
+- DICOM Echo 验证设备连通性
+- 网络信息 API 返回完整配置参数
 
-### 优先级中 (P1)
-1. **影像渐进式加载** - 卫星网络优化
-2. **PDF 报告导出** - 报告打印和导出
-3. **审计日志增强** - 完整的操作追踪
-4. **多语言支持** - 法语/英语/中文切换
+### 用户头像系统
 
-### 优先级低 (P2)
-1. **移动端适配** - PWA 支持
-2. **数据统计仪表板** - 图表和趋势分析
-3. **备份与恢复** - 自动化数据备份
+- Sharp 压缩：200x200 WebP，质量 80%
+- 全局显示：Header、会诊、聊天
+- 4 种尺寸：xs(24px) / sm(32px) / md(40px) / lg(64px)
+
+### 视频会诊
+
+- LiveKit WebRTC 替代 Jitsi Meet
+- HTTPS 加密传输
+- 聊天功能已隐藏（CSS 方式）
+
+### 国际化
+
+- 中文/英语/法语三语
+- 400+ 翻译条目
+- OHIF Viewer 语言切换
 
 ## 默认测试账号
 
@@ -126,22 +122,18 @@ bksys2/
 | 远程专家 | doctor_remote | admin123 |
 | 技师 | technician | admin123 |
 
-## 快速启动
+## 后续规划
 
-```bash
-# 使用 Docker Compose 启动
-cd deploy
-chmod +x scripts/setup.sh
-./scripts/setup.sh
-docker compose up -d
+### Beta 2
 
-# 或者分别开发
-cd backend && npm install && npm run dev
-cd frontend && npm install && npm run dev
-```
+- [ ] DICOM 影像渐进式加载（卫星网络优化）
+- [ ] PDF 报告导出
+- [ ] 影像标注协作同步
+- [ ] 移动端适配
 
-## 访问地址
+### 正式版
 
-- 前端应用: http://localhost
-- 后端 API: http://localhost/api
-- Orthanc PACS: http://localhost/orthanc (orthanc/orthanc)
+- [ ] 正式 SSL 证书
+- [ ] 数据备份与恢复
+- [ ] 性能监控
+- [ ] 安全审计增强

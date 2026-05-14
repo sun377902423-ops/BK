@@ -33,23 +33,13 @@ services:
     image: jodogne/orthanc-plugins:1.12.4
     container_name: bksys-orthanc
     restart: unless-stopped
-    environment:
-      ORTHANC__NAME: "BKSYS PACS"
-      ORTHANC__STG__PostgreSQL__EnableIndex: "true"
-      ORTHANC__PostgreSQL__Host: "postgres"
-      ORTHANC__PostgreSQL__Port: 5432
-      ORTHANC__PostgreSQL__Database: "bksys_med"
-      ORTHANC__PostgreSQL__Username: "bksys"
-      ORTHANC__PostgreSQL__Password: "bksys123"
-      ORTHANC__RegisteredUsers: "orthanc:orthanc"
-      ORTHANC__DICOMWeb__Enable: "true"
-      ORTHANC__WADO__Enable: "true"
-      VERBOSE_ENABLED: "false"
+    command: /etc/orthanc/orthanc-config.json
+    volumes:
+      - orthanc_data:/var/lib/orthanc/db
+      - ./orthanc-config.json:/etc/orthanc/orthanc-config.json:ro
     ports:
       - "8042:8042"
       - "4242:4242"
-    volumes:
-      - orthanc_data:/var/lib/orthanc/db
     depends_on:
       - postgres
 
@@ -68,8 +58,14 @@ services:
       ORTHANC_URL: "http://orthanc:8042"
       ORTHANC_USER: "orthanc"
       ORTHANC_PASS: "orthanc"
+      LIVEKIT_API_KEY: "bksyslivekit"
+      LIVEKIT_API_SECRET: "bksyslivekitsecret1234567890abcdef"
+      LIVEKIT_URL: "ws://livekit:7880"
     ports:
       - "3001:3001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - uploads_data:/app/uploads
     depends_on:
       - postgres
       - redis
@@ -97,6 +93,18 @@ services:
     environment:
       - APP_CONFIG=
 
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: bksys-livekit
+    restart: unless-stopped
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    command: --config /etc/livekit.yaml --node-ip 115.29.203.40
+
   nginx:
     image: nginx:1.27-alpine
     container_name: bksys-nginx
@@ -108,15 +116,15 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./ohif-custom.js:/etc/nginx/custom/ohif-custom.js:ro
-      - /usr/share/jitsi-meet:/usr/share/jitsi-meet:ro
-      - /etc/jitsi/meet:/etc/jitsi/meet:ro
     depends_on:
       - backend
       - frontend
       - orthanc
       - ohif-viewer
+      - livekit
 
 volumes:
   postgres_data:
   redis_data:
   orthanc_data:
+  uploads_data:

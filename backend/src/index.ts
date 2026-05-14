@@ -5,7 +5,10 @@ import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
 import websocket from '@fastify/websocket';
 import multipart from '@fastify/multipart';
+import staticPlugin from '@fastify/static';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 import { prisma } from './lib/prisma.js';
 import { authRoutes } from './routes/auth.js';
 import { patientRoutes } from './routes/patients.js';
@@ -16,6 +19,8 @@ import { userRoutes } from './routes/users.js';
 import { reportRoutes } from './routes/reports.js';
 import { roleRoutes } from './routes/roles.js';
 import { notificationRoutes } from './routes/notifications.js';
+import { logRoutes } from './routes/logs.js';
+import { deviceRoutes } from './routes/devices.js';
 
 dotenv.config();
 
@@ -53,6 +58,17 @@ await fastify.register(multipart, {
   },
 });
 
+const uploadsDir = '/app/uploads/avatars';
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+await fastify.register(staticPlugin, {
+  root: path.resolve('/app/uploads'),
+  prefix: '/uploads/',
+  decorateReply: false,
+});
+
 await fastify.register(authRoutes, { prefix: '/api' });
 await fastify.register(patientRoutes, { prefix: '/api' });
 await fastify.register(studyRoutes, { prefix: '/api' });
@@ -62,6 +78,8 @@ await fastify.register(userRoutes, { prefix: '/api' });
 await fastify.register(reportRoutes, { prefix: '/api' });
 await fastify.register(roleRoutes, { prefix: '/api' });
 await fastify.register(notificationRoutes, { prefix: '/api' });
+await fastify.register(logRoutes, { prefix: '/api' });
+await fastify.register(deviceRoutes, { prefix: '/api' });
 
 fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };

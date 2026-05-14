@@ -37,3 +37,14 @@ prisma/migrations/
 
 # Docker
 docker-compose.override.yml
+
+# SSL certificates (do not commit)
+deploy/nginx/ssl/
+
+# Uploads
+uploads/
+
+# Test / temp files
+*.pyc
+__pycache__/
+playwright/.cache/

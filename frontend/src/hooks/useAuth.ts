@@ -6,6 +6,7 @@ interface User {
   username: string;
   realName: string;
   email: string;
+  avatarUrl?: string;
   role?: { id: number; name: string } | string;
   hospitalId?: number;
   permissions?: string[];

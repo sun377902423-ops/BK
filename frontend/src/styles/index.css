@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+.lk-chat {
+  display: none !important;
+}
+
+.lk-control-bar .lk-chat-toggle {
+  display: none !important;
+}
+
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900 antialiased;

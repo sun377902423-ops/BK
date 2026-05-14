@@ -19,13 +19,14 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import PermissionGuard from '@/components/ui/PermissionGuard';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 interface Participant {
   id: number;
   userId: number;
   role: string;
   status: string;
-  user: { id: number; realName: string; username: string; role?: { name: string } };
+  user: { id: number; realName: string; username: string; avatarUrl?: string; role?: { name: string } };
 }
 
 interface Consultation {
@@ -296,15 +297,15 @@ const Consultations: React.FC = () => {
                   {consultation.participants.slice(0, 5).map((p) => (
                     <div
                       key={p.id}
-                      className="relative"
                       title={`${p.user.realName || p.user.username} - ${getParticipantRoleLabel(p.role)} (${getParticipantStatusLabel(p.status)})`}
                     >
-                      <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-medium text-primary-700">
-                          {(p.user.realName || p.user.username).charAt(0)}
-                        </span>
-                      </div>
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${getStatusDot(p.status)}`} />
+                      <UserAvatar
+                        src={p.user.avatarUrl}
+                        name={p.user.realName || p.user.username}
+                        size="sm"
+                        showStatus
+                        statusColor={getStatusDot(p.status)}
+                      />
                     </div>
                   ))}
                   {consultation.participants.length > 5 && (

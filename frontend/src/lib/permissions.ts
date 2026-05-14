@@ -43,6 +43,11 @@ export const PERMISSIONS = {
 
   SYSTEM_CONFIG: 'system:config',
   SYSTEM_AUDIT: 'system:audit',
+
+  DEVICE_LIST: 'device:list',
+  DEVICE_CREATE: 'device:create',
+  DEVICE_UPDATE: 'device:update',
+  DEVICE_DELETE: 'device:delete',
 } as const;
 
 export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];

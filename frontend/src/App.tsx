@@ -15,6 +15,8 @@ import Hospitals from './pages/Hospitals';
 import Reports from './pages/Reports';
 import AccessRequests from './pages/AccessRequests';
 import Roles from './pages/Roles';
+import SystemLogs from './pages/SystemLogs';
+import ImagingDevices from './pages/ImagingDevices';
 import Layout from './components/layout/Layout';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 
@@ -58,6 +60,8 @@ const App: React.FC = () => {
         <Route path="/reports" element={<AuthorizedRoute permissions={[PERMISSIONS.REPORT_LIST]}><Reports /></AuthorizedRoute>} />
         <Route path="/access-requests" element={<AuthorizedRoute permissions={[PERMISSIONS.ACCESS_REQUEST_LIST]}><AccessRequests /></AuthorizedRoute>} />
         <Route path="/roles" element={<AuthorizedRoute permissions={[PERMISSIONS.USER_ASSIGN_ROLE]}><Roles /></AuthorizedRoute>} />
+        <Route path="/system-logs" element={<AuthorizedRoute permissions={[PERMISSIONS.SYSTEM_AUDIT]}><SystemLogs /></AuthorizedRoute>} />
+        <Route path="/devices" element={<AuthorizedRoute permissions={[PERMISSIONS.DEVICE_LIST]}><ImagingDevices /></AuthorizedRoute>} />
       </Route>
     </Routes>
   );
