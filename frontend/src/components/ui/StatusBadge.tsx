@@ -16,6 +16,7 @@ export default function StatusBadge({ status, type }: StatusBadgeProps) {
     IN_PROGRESS: { label: t('status.inProgress'), className: 'bg-green-100 text-green-800' },
     COMPLETED: { label: t('status.completed'), className: 'bg-gray-100 text-gray-800' },
     CANCELLED: { label: t('status.cancelled'), className: 'bg-red-100 text-red-800' },
+    ARCHIVED: { label: t('status.archived'), className: 'bg-amber-100 text-amber-800' },
   };
 
   const reportMap: Record<string, { label: string; className: string }> = {

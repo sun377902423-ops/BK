@@ -22,6 +22,7 @@ enum ConsultationStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+  ARCHIVED
 }
 
 enum ParticipantRole {
@@ -230,6 +231,7 @@ model Consultation {
   scheduledAt   DateTime?
   startedAt     DateTime?
   endedAt       DateTime?
+  archivedAt    DateTime?
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 

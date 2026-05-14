@@ -13,7 +13,7 @@ RUN npm ci
 COPY . .
 
 # 构建应用
-RUN npm run build
+RUN rm -rf /app/node_modules/.vite /app/node_modules/.cache && npm run build
 
 # 生产阶段
 FROM nginx:1.27-alpine

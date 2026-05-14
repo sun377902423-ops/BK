@@ -6,12 +6,13 @@ import { PERMISSIONS } from '../lib/permissions.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  CREATED: ['INVITED', 'SCHEDULED', 'CANCELLED'],
+  CREATED: ['INVITED', 'SCHEDULED', 'IN_PROGRESS', 'CANCELLED'],
   INVITED: ['SCHEDULED', 'IN_PROGRESS', 'CANCELLED'],
   SCHEDULED: ['IN_PROGRESS', 'CANCELLED'],
   IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
-  COMPLETED: [],
-  CANCELLED: [],
+  COMPLETED: ['ARCHIVED'],
+  CANCELLED: ['ARCHIVED'],
+  ARCHIVED: [],
 };
 
 async function notifyUser(userId: number, type: string, title: string, body: string, resourceType?: string, resourceId?: number) {
@@ -198,6 +199,10 @@ export async function consultationRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: '只有参与人才能开始会诊' });
     }
 
+    if (data.status === 'ARCHIVED' && !isInitiator && request.user.role !== 'ADMIN') {
+      return reply.status(403).send({ error: '只有发起人才能归档会诊' });
+    }
+
     const updateData: any = { status: data.status };
 
     if (data.status === 'IN_PROGRESS') {
@@ -211,6 +216,8 @@ export async function consultationRoutes(fastify: FastifyInstance) {
       }
     } else if (data.status === 'COMPLETED' || data.status === 'CANCELLED') {
       updateData.endedAt = new Date();
+    } else if (data.status === 'ARCHIVED') {
+      updateData.archivedAt = new Date();
     }
 
     const updated = await prisma.consultation.update({
@@ -384,6 +391,58 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     );
 
     return { success: true, status: data.status };
+  });
+
+  fastify.put('/consultations/:id/participants/:userId/join', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_JOIN)],
+  }, async (request, reply) => {
+    const { id, userId: participantUserId } = request.params as { id: string; userId: string };
+    const currentUserId = request.user.userId;
+    const consultationId = parseInt(id);
+    const pUserId = parseInt(participantUserId);
+
+    if (currentUserId !== pUserId && request.user.role !== 'ADMIN') {
+      return reply.status(403).send({ error: '只能更新自己的状态' });
+    }
+
+    const participant = await prisma.consultationParticipant.findUnique({
+      where: { consultationId_userId: { consultationId, userId: pUserId } },
+    });
+
+    if (!participant) return reply.status(404).send({ error: '参与记录不存在' });
+
+    await prisma.consultationParticipant.update({
+      where: { id: participant.id },
+      data: { status: 'JOINED', joinedAt: new Date() },
+    });
+
+    return { success: true, status: 'JOINED' };
+  });
+
+  fastify.put('/consultations/:id/participants/:userId/leave', {
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_JOIN)],
+  }, async (request, reply) => {
+    const { id, userId: participantUserId } = request.params as { id: string; userId: string };
+    const currentUserId = request.user.userId;
+    const consultationId = parseInt(id);
+    const pUserId = parseInt(participantUserId);
+
+    if (currentUserId !== pUserId && request.user.role !== 'ADMIN') {
+      return reply.status(403).send({ error: '只能更新自己的状态' });
+    }
+
+    const participant = await prisma.consultationParticipant.findUnique({
+      where: { consultationId_userId: { consultationId, userId: pUserId } },
+    });
+
+    if (!participant) return reply.status(404).send({ error: '参与记录不存在' });
+
+    await prisma.consultationParticipant.update({
+      where: { id: participant.id },
+      data: { status: 'LEFT' },
+    });
+
+    return { success: true, status: 'LEFT' };
   });
 
   fastify.delete('/consultations/:id/participants/:userId', {

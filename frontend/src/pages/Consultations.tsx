@@ -53,6 +53,9 @@ interface Study {
   id: number;
   orthancStudyId: string;
   modality: string;
+  studyDescription?: string;
+  studyDate?: string;
+  patientId: number;
 }
 
 interface User {
@@ -69,6 +72,12 @@ const Consultations: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [mineFilter, setMineFilter] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const getDefaultScheduledAt = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  };
+
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -86,6 +95,7 @@ const Consultations: React.FC = () => {
     { label: t('consultation.inProgress'), value: 'IN_PROGRESS' },
     { label: t('consultation.completed'), value: 'COMPLETED' },
     { label: t('consultation.cancelled'), value: 'CANCELLED' },
+    { label: t('consultation.archived'), value: 'ARCHIVED' },
   ];
 
   const { data: consultations, isLoading } = useQuery<Consultation[]>({
@@ -108,11 +118,13 @@ const Consultations: React.FC = () => {
   });
 
   const { data: studies } = useQuery<Study[]>({
-    queryKey: ['studies'],
+    queryKey: ['studies', form.patientId],
     queryFn: async () => {
-      const res = await api.get('/api/studies');
+      if (!form.patientId) return [];
+      const res = await api.get('/api/studies', { params: { patientId: form.patientId } });
       return res.data;
     },
+    enabled: !!form.patientId,
   });
 
   const { data: users } = useQuery<User[]>({
@@ -197,7 +209,7 @@ const Consultations: React.FC = () => {
         title={t('consultation.title')}
         action={
           <PermissionGuard permissions={[PERMISSIONS.CONSULTATION_CREATE]}>
-            <button onClick={() => setModalOpen(true)} className="btn-primary inline-flex items-center">
+            <button onClick={() => { setForm(f => ({ ...f, scheduledAt: getDefaultScheduledAt() })); setModalOpen(true); }} className="btn-primary inline-flex items-center">
               <PlusIcon className="w-4 h-4 mr-1" />
               {t('consultation.newConsultation')}
             </button>
@@ -362,7 +374,7 @@ const Consultations: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('consultation.selectPatient')}</label>
               <select
                 value={form.patientId}
-                onChange={(e) => setForm({ ...form, patientId: e.target.value })}
+                onChange={(e) => setForm({ ...form, patientId: e.target.value, studyId: '' })}
                 className="input"
                 required
               >
@@ -390,10 +402,13 @@ const Consultations: React.FC = () => {
               value={form.studyId}
               onChange={(e) => setForm({ ...form, studyId: e.target.value })}
               className="input"
+              disabled={!form.patientId}
             >
-              <option value="">{t('consultation.noRelatedStudy')}</option>
+              <option value="">{form.patientId ? t('consultation.noRelatedStudy') : t('consultation.selectPatientFirst')}</option>
               {studies?.map((s) => (
-                <option key={s.id} value={s.id}>{s.orthancStudyId} - {s.modality}</option>
+                <option key={s.id} value={s.id}>
+                  {s.modality || 'N/A'} - {s.studyDescription || s.orthancStudyId.slice(0, 12)} ({s.studyDate ? new Date(s.studyDate).toLocaleDateString() : '-'})
+                </option>
               ))}
             </select>
           </div>
