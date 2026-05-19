@@ -4,6 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { BellIcon } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
+import {
+  playMessageSound,
+  showDesktopNotification,
+  requestDesktopNotificationPermission,
+} from '@/lib/notificationSound';
 
 interface Notification {
   id: number;
@@ -23,6 +28,9 @@ const NotificationBell: React.FC = () => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const prevCountRef = useRef(0);
+  const lastSeenIdRef = useRef<number>(0);
+  const initializedRef = useRef(false);
 
   const { data: unreadCount } = useQuery<{ count: number }>({
     queryKey: ['notifications', 'unread-count'],
@@ -30,7 +38,9 @@ const NotificationBell: React.FC = () => {
       const res = await api.get('/api/notifications/unread-count');
       return res.data;
     },
-    refetchInterval: 15000,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   });
 
   const { data: notifications } = useQuery<Notification[]>({
@@ -39,7 +49,9 @@ const NotificationBell: React.FC = () => {
       const res = await api.get('/api/notifications', { params: { unreadOnly: 'true' } });
       return res.data;
     },
-    enabled: open,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   });
 
   const readMutation = useMutation({
@@ -88,6 +100,54 @@ const NotificationBell: React.FC = () => {
   };
 
   const count = unreadCount?.count || 0;
+
+  useEffect(() => {
+    if (count > prevCountRef.current && prevCountRef.current !== 0) {
+      playMessageSound();
+    }
+    prevCountRef.current = count;
+  }, [count]);
+
+  // 拉取到新通知时：播放声音、桌面通知、同时刷新关联业务列表
+  useEffect(() => {
+    if (!notifications || notifications.length === 0) return;
+    const newest = notifications[0];
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      lastSeenIdRef.current = newest.id;
+      return;
+    }
+    if (newest.id <= lastSeenIdRef.current) return;
+
+    const fresh = notifications.filter((n) => n.id > lastSeenIdRef.current);
+    lastSeenIdRef.current = newest.id;
+
+    playMessageSound();
+    showDesktopNotification(newest.title, newest.body, () => {
+      if (newest.resourceType === 'CONSULTATION' && newest.resourceId) {
+        navigate(`/consultations/${newest.resourceId}`);
+      }
+    });
+
+    const types = new Set(fresh.map((n) => n.type));
+    let needConsultation = false;
+    let needReport = false;
+    types.forEach((t) => {
+      if (t.startsWith('CONSULTATION')) needConsultation = true;
+      if (t.startsWith('REPORT')) needReport = true;
+    });
+    if (needConsultation) {
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      queryClient.invalidateQueries({ queryKey: ['consultation'] });
+    }
+    if (needReport) {
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+    }
+  }, [notifications, queryClient, navigate]);
+
+  useEffect(() => {
+    requestDesktopNotificationPermission();
+  }, []);
 
   return (
     <div className="relative" ref={dropdownRef}>

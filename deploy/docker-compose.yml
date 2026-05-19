@@ -1,24 +1,32 @@
 version: '3.8'
 
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: bksys-postgres
     restart: unless-stopped
+    env_file: [.env]
     environment:
-      POSTGRES_USER: bksys
-      POSTGRES_PASSWORD: bksys123
-      POSTGRES_DB: bksys_med
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data/pgdata
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bksys -d bksys_med"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
 
   redis:
     image: redis:7-alpine
@@ -26,8 +34,14 @@ services:
     restart: unless-stopped
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging: *default-logging
 
   orthanc:
     image: jodogne/orthanc-plugins:1.12.4
@@ -37,11 +51,19 @@ services:
     volumes:
       - orthanc_data:/var/lib/orthanc/db
       - ./orthanc-config.json:/etc/orthanc/orthanc-config.json:ro
+    expose:
+      - "8042"
     ports:
-      - "8042:8042"
       - "4242:4242"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "--user=${ORTHANC_USERNAME}", "--password=${ORTHANC_PASSWORD}", "http://localhost:8042/system"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
 
   backend:
     build:
@@ -49,27 +71,29 @@ services:
       dockerfile: Dockerfile
     container_name: bksys-backend
     restart: unless-stopped
+    env_file: [.env]
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: "postgresql://bksys:bksys123@postgres:5432/bksys_med?schema=public"
-      JWT_SECRET: "bksys-med-jwt-secret-change-in-production"
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public"
       REDIS_URL: "redis://redis:6379"
       ORTHANC_URL: "http://orthanc:8042"
-      ORTHANC_USER: "orthanc"
-      ORTHANC_PASS: "orthanc"
-      LIVEKIT_API_KEY: "bksyslivekit"
-      LIVEKIT_API_SECRET: "bksyslivekitsecret1234567890abcdef"
-      LIVEKIT_URL: "ws://livekit:7880"
-    ports:
-      - "3001:3001"
+      LIVEKIT_URL: "${LIVEKIT_URL}"
+    expose:
+      - "3001"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - uploads_data:/app/uploads
+      - backup_data:/app/backups
+      - orthanc_data:/var/lib/orthanc/db:ro
     depends_on:
-      - postgres
-      - redis
-      - orthanc
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      orthanc:
+        condition: service_started
+    logging: *default-logging
 
   frontend:
     build:
@@ -77,21 +101,23 @@ services:
       dockerfile: Dockerfile
     container_name: bksys-frontend
     restart: unless-stopped
-    ports:
-      - "5173:80"
+    expose:
+      - "80"
     depends_on:
       - backend
+    logging: *default-logging
 
   ohif-viewer:
     image: ohif/viewer:latest
     container_name: bksys-ohif
     restart: unless-stopped
-    ports:
-      - "3000:80"
+    expose:
+      - "80"
     volumes:
       - ./ohif-app-config.js:/usr/share/nginx/html/app-config.js:ro
     environment:
       - APP_CONFIG=
+    logging: *default-logging
 
   livekit:
     image: livekit/livekit-server:latest
@@ -100,10 +126,11 @@ services:
     ports:
       - "7880:7880"
       - "7881:7881"
-      - "7882:7882/udp"
+      - "50000-50100:50000-50100/udp"
     volumes:
       - ./livekit.yaml:/etc/livekit.yaml:ro
-    command: --config /etc/livekit.yaml --node-ip 115.29.203.40
+    command: ["--config", "/etc/livekit.yaml", "--node-ip", "${LIVEKIT_NODE_IP}"]
+    logging: *default-logging
 
   nginx:
     image: nginx:1.27-alpine
@@ -115,6 +142,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/html:/etc/nginx/html:ro
       - ./ohif-custom.js:/etc/nginx/custom/ohif-custom.js:ro
     depends_on:
       - backend
@@ -122,9 +150,16 @@ services:
       - orthanc
       - ohif-viewer
       - livekit
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+    logging: *default-logging
 
 volumes:
   postgres_data:
   redis_data:
   orthanc_data:
   uploads_data:
+  backup_data:

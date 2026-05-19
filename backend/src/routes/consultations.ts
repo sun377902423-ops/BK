@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { ConsultationStatus, ParticipantRole, ParticipantStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { authorize } from '../lib/authorize.js';
+import { requireConsultationMember } from '../lib/resource-acl.js';
 import { PERMISSIONS } from '../lib/permissions.js';
 import { v4 as uuidv4 } from 'uuid';
 import { AccessToken } from 'livekit-server-sdk';
@@ -33,9 +34,16 @@ export async function consultationRoutes(fastify: FastifyInstance) {
 
     const where: any = {};
     if (query.status) where.status = query.status;
-    if (userRole !== 'ADMIN' && hospitalId) {
-      where.hospitalId = hospitalId;
+
+    if (userRole !== 'ADMIN') {
+      const scopedConditions: any[] = [
+        { createdById: userId },
+        { participants: { some: { userId } } },
+      ];
+      if (hospitalId) scopedConditions.push({ hospitalId });
+      where.AND = [{ OR: scopedConditions }];
     }
+
     if (query.mine === 'true') {
       where.participants = { some: { userId } };
     }
@@ -58,7 +66,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/consultations/:id', {
-    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_LIST)],
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_LIST), requireConsultationMember],
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const consultation = await prisma.consultation.findUnique({
@@ -92,7 +100,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/consultations/:id/video-token', {
-    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_JOIN)],
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_JOIN), requireConsultationMember],
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const userId = request.user.userId;
@@ -100,9 +108,27 @@ export async function consultationRoutes(fastify: FastifyInstance) {
 
     const consultation = await prisma.consultation.findUnique({
       where: { id: consultationId },
+      include: {
+        participants: { where: { userId } },
+      },
     });
 
     if (!consultation) return reply.status(404).send({ error: '会诊不存在' });
+
+    const isInitiator = consultation.createdById === userId;
+    const participant = consultation.participants[0];
+    if (!isInitiator) {
+      if (!participant) {
+        return reply.status(403).send({ error: '您不是该会诊的参与者' });
+      }
+      if (participant.status === 'DECLINED' || participant.status === 'LEFT') {
+        return reply.status(403).send({ error: '您已退出此会诊' });
+      }
+    }
+
+    if (consultation.status !== 'IN_PROGRESS') {
+      return reply.status(400).send({ error: '会诊未处于进行中状态' });
+    }
 
     const apiKey = process.env.LIVEKIT_API_KEY;
     const apiSecret = process.env.LIVEKIT_API_SECRET;
@@ -204,7 +230,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/consultations/:id/status', {
-    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_JOIN)],
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_JOIN), requireConsultationMember],
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const userId = request.user.userId;
@@ -227,19 +253,27 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     }
 
     const isInitiator = consultation.createdById === userId;
-    const isParticipant = consultation.participants.some(
-      (p) => p.userId === userId && (p.role === 'INITIATOR' || p.role === 'EXPERT')
-    );
+    const myParticipant = consultation.participants.find((p) => p.userId === userId);
+    const isExpertParticipant = !!myParticipant && (myParticipant.role === 'INITIATOR' || myParticipant.role === 'EXPERT');
+    const isAdmin = request.user.role === 'ADMIN';
 
-    if (data.status === 'CANCELLED' && !isInitiator && request.user.role !== 'ADMIN') {
+    if (data.status === 'CANCELLED' && !isInitiator && !isAdmin) {
       return reply.status(403).send({ error: '只有发起人才能取消会诊' });
     }
 
-    if (data.status === 'IN_PROGRESS' && !isInitiator && !isParticipant) {
-      return reply.status(403).send({ error: '只有参与人才能开始会诊' });
+    if (data.status === 'IN_PROGRESS' && !isInitiator && !isExpertParticipant && !isAdmin) {
+      return reply.status(403).send({ error: '只有发起人或专家参与人才能开始会诊' });
     }
 
-    if (data.status === 'ARCHIVED' && !isInitiator && request.user.role !== 'ADMIN') {
+    if (data.status === 'COMPLETED' && !isInitiator && !isExpertParticipant && !isAdmin) {
+      return reply.status(403).send({ error: '只有发起人或专家参与人才能结束会诊' });
+    }
+
+    if (data.status === 'SCHEDULED' && !isInitiator && !isAdmin) {
+      return reply.status(403).send({ error: '只有发起人才能调整会诊安排' });
+    }
+
+    if (data.status === 'ARCHIVED' && !isInitiator && !isAdmin) {
       return reply.status(403).send({ error: '只有发起人才能归档会诊' });
     }
 
@@ -247,10 +281,9 @@ export async function consultationRoutes(fastify: FastifyInstance) {
 
     if (data.status === 'IN_PROGRESS') {
       updateData.startedAt = new Date();
-      const participant = consultation.participants.find((p) => p.userId === userId);
-      if (participant && participant.status === 'ACCEPTED') {
+      if (myParticipant && myParticipant.status === 'ACCEPTED') {
         await prisma.consultationParticipant.update({
-          where: { id: participant.id },
+          where: { id: myParticipant.id },
           data: { status: 'JOINED', joinedAt: new Date() },
         });
       }
@@ -299,7 +332,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/consultations/:id', {
-    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_MANAGE)],
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_MANAGE), requireConsultationMember],
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const userId = request.user.userId;
@@ -324,7 +357,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/consultations/:id/participants/invite', {
-    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_CREATE)],
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_CREATE), requireConsultationMember],
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const userId = request.user.userId;
@@ -341,7 +374,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: '只有发起人才能邀请参与人' });
     }
 
-    if (consultation.status !== 'CREATED' && consultation.status !== 'INVITED' && consultation.status !== 'SCHEDULED') {
+    if (consultation.status !== 'CREATED' && consultation.status !== 'INVITED' && consultation.status !== 'SCHEDULED' && consultation.status !== 'IN_PROGRESS') {
       return reply.status(400).send({ error: '当前状态不允许邀请参与人' });
     }
 
@@ -486,7 +519,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.delete('/consultations/:id/participants/:userId', {
-    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_MANAGE)],
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_MANAGE), requireConsultationMember],
   }, async (request, reply) => {
     const { id, userId } = request.params as { id: string; userId: string };
     const consultationId = parseInt(id);
@@ -504,7 +537,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/consultations/:id/messages', {
-    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_LIST)],
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_LIST), requireConsultationMember],
   }, async (request) => {
     const { id } = request.params as { id: string };
     const messages = await prisma.consultationMessage.findMany({
@@ -518,7 +551,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/consultations/:id/messages', {
-    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_JOIN)],
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_JOIN), requireConsultationMember],
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const userId = request.user.userId;
@@ -534,17 +567,43 @@ export async function consultationRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: '当前状态不允许发送消息' });
     }
 
+    const content = (data.content || '').trim();
+    if (!content) {
+      return reply.status(400).send({ error: '消息内容不能为空' });
+    }
+    if (content.length > 2000) {
+      return reply.status(400).send({ error: '消息内容过长（最多 2000 字符）' });
+    }
+
     const message = await prisma.consultationMessage.create({
       data: {
         consultationId,
         userId,
-        content: data.content,
-        type: data.type || 'TEXT',
+        content,
+        type: data.type === 'SYSTEM' ? 'TEXT' : (data.type || 'TEXT'),
       },
       include: {
         user: { select: { id: true, realName: true, username: true, avatarUrl: true } },
       },
     });
     return message;
+  });
+
+  fastify.put('/consultations/:id/vitals', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const consultationId = parseInt(id);
+    const body = request.body as { vitalSigns: Record<string, string> };
+
+    const consultation = await prisma.consultation.findUnique({ where: { id: consultationId } });
+    if (!consultation) return reply.status(404).send({ error: '会诊不存在' });
+
+    const updated = await prisma.consultation.update({
+      where: { id: consultationId },
+      data: { vitalSigns: body.vitalSigns || {} },
+      select: { id: true, vitalSigns: true },
+    });
+    return updated;
   });
 }

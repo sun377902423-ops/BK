@@ -9,7 +9,7 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list \
 COPY package*.json ./
 COPY src/prisma ./src/prisma/
 
-RUN npm ci
+RUN npm install
 
 RUN npx prisma generate
 
@@ -25,11 +25,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list \
-    && apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+    && apt-get update && apt-get install -y python3 make g++ postgresql-client sshpass unzip && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 
-RUN npm ci
+RUN npm install --omit=dev
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma

@@ -92,12 +92,30 @@ const SystemLogs: React.FC = () => {
     return 'text-gray-300';
   };
 
-  const highlightContent = (content: string, isErr: boolean) => {
+  const ERROR_TOKEN_RE = /\b(error|err|fatal|panic|crit|alert|emerg|fail|exception|warn|warning)\b/gi;
+
+  const renderHighlightedContent = (content: string, isErr: boolean) => {
     if (!isErr) return content;
-    return content.replace(
-      /\b(error|err|fatal|panic|crit|alert|emerg|fail|exception|warn|warning)\b/gi,
-      '<span class="font-bold text-red-300">$1</span>'
-    );
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    const regex = new RegExp(ERROR_TOKEN_RE.source, ERROR_TOKEN_RE.flags);
+    while ((match = regex.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(content.slice(lastIndex, match.index));
+      }
+      parts.push(
+        <span key={`${match.index}-${match[0]}`} className="font-bold text-red-300">
+          {match[0]}
+        </span>
+      );
+      lastIndex = match.index + match[0].length;
+      if (match.index === regex.lastIndex) regex.lastIndex++;
+    }
+    if (lastIndex < content.length) {
+      parts.push(content.slice(lastIndex));
+    }
+    return parts;
   };
 
   return (
@@ -223,11 +241,7 @@ const SystemLogs: React.FC = () => {
                       {line.index + 1}
                     </td>
                     <td className="pl-3 whitespace-pre-wrap break-all">
-                      <span
-                        dangerouslySetInnerHTML={{
-                          __html: highlightContent(line.content, line.isError),
-                        }}
-                      />
+                      <span>{renderHighlightedContent(line.content, line.isError)}</span>
                     </td>
                   </tr>
                 ))}

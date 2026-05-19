@@ -4,7 +4,9 @@ import { authorize } from '../lib/authorize.js';
 import { PERMISSIONS } from '../lib/permissions.js';
 
 const ORTHANC_URL = process.env.ORTHANC_URL || 'http://orthanc:8042';
-const ORTHANC_AUTH = 'Basic ' + Buffer.from('orthanc:orthanc').toString('base64');
+const ORTHANC_USER = process.env.ORTHANC_USERNAME || 'orthanc';
+const ORTHANC_PASS = process.env.ORTHANC_PASSWORD || 'orthanc';
+const ORTHANC_AUTH = 'Basic ' + Buffer.from(`${ORTHANC_USER}:${ORTHANC_PASS}`).toString('base64');
 
 async function syncOrthancModality(device: any, action: 'add' | 'remove') {
   try {
@@ -63,8 +65,16 @@ export async function deviceRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate, authorize(PERMISSIONS.DEVICE_LIST)],
   }, async (request) => {
     const query = request.query as { hospitalId?: string; status?: string };
+    const userRole = request.user.role;
+    const userHospitalId = request.user.hospitalId;
     const where: any = {};
-    if (query.hospitalId) where.hospitalId = parseInt(query.hospitalId);
+    if (userRole === 'ADMIN') {
+      if (query.hospitalId) where.hospitalId = parseInt(query.hospitalId);
+    } else if (userHospitalId) {
+      where.hospitalId = userHospitalId;
+    } else {
+      return [];
+    }
     if (query.status) where.status = query.status;
 
     const devices = await prisma.imagingDevice.findMany({
@@ -94,6 +104,9 @@ export async function deviceRoutes(fastify: FastifyInstance) {
       },
     });
     if (!device) return reply.status(404).send({ error: '设备不存在' });
+    if (request.user.role !== 'ADMIN' && request.user.hospitalId && device.hospitalId !== request.user.hospitalId) {
+      return reply.status(403).send({ error: '无权访问该设备' });
+    }
     return device;
   });
 
@@ -263,32 +276,34 @@ export async function deviceRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/devices/network-info', {
-    preHandler: [fastify.authenticate, authorize(PERMISSIONS.DEVICE_LIST)],
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.SYSTEM_CONFIG)],
   }, async () => {
     const orthancInfo: any = {};
     try {
       const resp = await fetch(`${ORTHANC_URL}/system`, {
         headers: { Authorization: ORTHANC_AUTH },
       });
-      if (resp.ok) orthancInfo.system = await resp.json();
+      if (resp.ok) {
+        const system = await resp.json() as any;
+        orthancInfo.system = {
+          Version: system?.Version,
+          ApiVersion: system?.ApiVersion,
+          DicomAet: system?.DicomAet,
+        };
+      }
 
       const modalitiesResp = await fetch(`${ORTHANC_URL}/modalities`, {
         headers: { Authorization: ORTHANC_AUTH },
       });
       if (modalitiesResp.ok) orthancInfo.modalities = await modalitiesResp.json();
-
-      const dicomResp = await fetch(`${ORTHANC_URL}/dicom-node`, {
-        headers: { Authorization: ORTHANC_AUTH },
-      });
-      if (dicomResp.ok) orthancInfo.dicomNode = await dicomResp.json();
     } catch {}
 
     return {
       orthanc: orthancInfo,
-      serverPublicIp: '115.29.203.40',
-      dicomPort: 4242,
-      orthancAet: 'BKSYSPACS',
-      networkMode: 'STARLINK',
+      serverPublicIp: process.env.SERVER_PUBLIC_IP || null,
+      dicomPort: parseInt(process.env.DICOM_PORT || '4242', 10),
+      orthancAet: process.env.ORTHANC_AET || 'BKSYSPACS',
+      networkMode: process.env.NETWORK_MODE || 'STANDARD',
     };
   });
 }

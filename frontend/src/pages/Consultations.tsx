@@ -108,6 +108,8 @@ const Consultations: React.FC = () => {
       const res = await api.get('/api/consultations', { params });
       return res.data;
     },
+    refetchInterval: 8000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: patients } = useQuery<Patient[]>({

@@ -4,22 +4,21 @@
   "DicomCheckCalledAet": false,
   "DicomServerEnabled": true,
   "RemoteAccessAllowed": true,
+  "AuthenticationEnabled": true,
   "RegisteredUsers": {
     "orthanc": "orthanc"
   },
-  "PostgreSQL": {
-    "EnableIndex": true,
-    "EnableStorage": true,
-    "Host": "postgres",
-    "Port": 5432,
-    "Database": "bksys_med",
-    "Username": "bksys",
-    "Password": "bksys123"
+  "Plugins": [
+    "/usr/local/share/orthanc/plugins"
+  ],
+  "DicomWeb": {
+    "Enable": true,
+    "EnableWado": true,
+    "EnableStow": true,
+    "EnableQido": true
   },
-  "DICOMweb": {
-    "Enable": true
-  },
-  "WADO": {
-    "Enable": true
+  "HttpCompressionEnabled": true,
+  "HttpHeaders": {
+    "X-Content-Type-Options": "nosniff"
   }
 }

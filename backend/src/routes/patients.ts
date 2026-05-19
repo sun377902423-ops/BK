@@ -8,13 +8,42 @@ function buildPatientWhere(userId: number, roleName: string, hospitalId: number 
   if (roleName === 'ADMIN') return {};
   const conditions: any[] = [
     { createdById: userId },
-    { createdById: null },
-    { grantedAccesses: { some: { userId } } },
+    { accessGrants: { some: { userId } } },
   ];
   if (hospitalId) {
     conditions.push({ hospitalId });
   }
   return { OR: conditions };
+}
+
+const verifyAttempts = new Map<string, { count: number; firstAt: number }>();
+const VERIFY_WINDOW_MS = 10 * 60 * 1000;
+const VERIFY_MAX_ATTEMPTS = 5;
+
+function recordVerifyAttempt(key: string, success: boolean): boolean {
+  const now = Date.now();
+  const entry = verifyAttempts.get(key);
+  if (success) {
+    verifyAttempts.delete(key);
+    return true;
+  }
+  if (!entry || now - entry.firstAt > VERIFY_WINDOW_MS) {
+    verifyAttempts.set(key, { count: 1, firstAt: now });
+    return true;
+  }
+  entry.count += 1;
+  if (entry.count > VERIFY_MAX_ATTEMPTS) return false;
+  return true;
+}
+
+function isVerifyBlocked(key: string): boolean {
+  const entry = verifyAttempts.get(key);
+  if (!entry) return false;
+  if (Date.now() - entry.firstAt > VERIFY_WINDOW_MS) {
+    verifyAttempts.delete(key);
+    return false;
+  }
+  return entry.count >= VERIFY_MAX_ATTEMPTS;
 }
 
 export async function patientRoutes(fastify: FastifyInstance) {
@@ -66,9 +95,10 @@ export async function patientRoutes(fastify: FastifyInstance) {
     const isOwner = patient.createdById === userId;
     const isAdmin = userRole === 'ADMIN';
     const hasAccess = patient.accessGrants && patient.accessGrants.length > 0;
-    const isLegacy = !patient.createdById;
+    const userHospitalId = request.user.hospitalId;
+    const sameHospital = !!userHospitalId && patient.hospitalId === userHospitalId;
 
-    if (!isOwner && !isAdmin && !hasAccess && !isLegacy) {
+    if (!isOwner && !isAdmin && !hasAccess && !sameHospital) {
       return reply.status(403).send({
         error: '无权访问该患者信息',
         hasCasePassword: !!patient.casePassword,
@@ -77,7 +107,8 @@ export async function patientRoutes(fastify: FastifyInstance) {
       });
     }
 
-    return patient;
+    const { casePassword, ...safe } = patient as any;
+    return { ...safe, hasCasePassword: !!casePassword };
   });
 
   fastify.post('/patients', {
@@ -268,17 +299,36 @@ export async function patientRoutes(fastify: FastifyInstance) {
     const data = request.body as any;
     const userId = request.user.userId;
 
+    const rateKey = `${userId}:${id}`;
+    if (isVerifyBlocked(rateKey)) {
+      return reply.status(429).send({ error: '尝试次数过多，请稍后重试' });
+    }
+
     const patient = await prisma.patient.findUnique({ where: { id: parseInt(id) } });
     if (!patient) return reply.status(404).send({ error: '患者不存在' });
     if (!patient.casePassword) return reply.status(400).send({ error: '该患者未设置病例密码' });
 
     const valid = await bcrypt.compare(data.password || '', patient.casePassword);
-    if (!valid) return reply.status(401).send({ error: '密码错误' });
+    if (!valid) {
+      recordVerifyAttempt(rateKey, false);
+      return reply.status(401).send({ error: '密码错误' });
+    }
+
+    recordVerifyAttempt(rateKey, true);
 
     await prisma.patientAccess.upsert({
       where: { patientId_userId: { patientId: parseInt(id), userId } },
       create: { patientId: parseInt(id), userId, accessType: 'PASSWORD' },
       update: { accessType: 'PASSWORD' },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'VIEW',
+        resourceType: 'PATIENT_CASE_PASSWORD',
+        resourceId: parseInt(id),
+      },
     });
 
     return { success: true, message: '密码验证通过' };
@@ -295,6 +345,10 @@ export async function patientRoutes(fastify: FastifyInstance) {
     if (!patient) return reply.status(404).send({ error: '患者不存在' });
     if (patient.createdById !== userId && request.user.role !== 'ADMIN') {
       return reply.status(403).send({ error: '无权设置病例密码' });
+    }
+
+    if (data.password && (typeof data.password !== 'string' || data.password.length < 6)) {
+      return reply.status(400).send({ error: '病例密码至少 6 位' });
     }
 
     const hashedPassword = data.password ? await bcrypt.hash(data.password, 10) : null;

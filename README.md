@@ -21,8 +21,10 @@
 | 会诊聊天 | 实时文字消息 | ✅ |
 | 报告管理 | 结构化报告、提交/签署/审批流程 | ✅ |
 | 用户头像 | 上传、压缩（Sharp WebP）、全局显示 | ✅ |
-| 通知系统 | 未读计数、15秒轮询 | ✅ |
+| 通知系统 | 未读计数、15秒轮询、消息音效 | ✅ |
 | 角色权限 | RBAC、菜单/路由/按钮三级控制 | ✅ |
+| 侧栏收缩 | 可收起/展开，收起时仅图标显示 | ✅ |
+| 错误边界 | ErrorBoundary 组件防止白屏 | ✅ |
 | 系统日志 | 服务器日志查看、错误过滤 | ✅ |
 | HTTPS | 自签名 SSL 证书加密传输 | ✅ |
 | i18n | 中文/英语/法语三语切换 | ✅ |
@@ -38,13 +40,14 @@
 
 | 层级 | 技术 |
 |------|------|
-| 前端 | React 19 + TypeScript + Vite + Tailwind CSS |
+| 前端 | React 18 + TypeScript + Vite + Tailwind CSS |
 | 后端 | Node.js 22 + Fastify + Prisma ORM |
 | 数据库 | PostgreSQL 16 + Redis 7 |
 | PACS | Orthanc 1.12.4（DICOM + DICOMweb） |
-| 影像查看 | OHIF Viewer v2 |
+| 影像查看 | OHIF Viewer（v2/v3 兼容） |
 | 视频会诊 | LiveKit Server |
 | 反向代理 | Nginx（HTTP + HTTPS） |
+| 移动端 | Capacitor 8（Android） |
 | 部署 | Docker Compose |
 
 ## 项目结构
@@ -53,71 +56,45 @@
 bksys2/
 ├── backend/                    # 后端服务
 │   ├── src/
-│   │   ├── routes/            # API 路由（11个模块）
-│   │   │   ├── auth.ts        # 认证
-│   │   │   ├── patients.ts    # 患者管理
-│   │   │   ├── studies.ts     # 影像检查
-│   │   │   ├── consultations.ts # 远程会诊
-│   │   │   ├── devices.ts     # 影像设备管理
-│   │   │   ├── reports.ts     # 报告管理
-│   │   │   ├── users.ts       # 用户管理+头像
-│   │   │   ├── hospitals.ts   # 医院管理
-│   │   │   ├── roles.ts       # 角色权限
-│   │   │   ├── notifications.ts # 通知
-│   │   │   └── logs.ts        # 系统日志
-│   │   ├── lib/               # 工具库
-│   │   │   ├── permissions.ts # 权限定义+角色映射
-│   │   │   ├── authorize.ts   # 鉴权中间件
-│   │   │   ├── prisma.ts      # 数据库客户端
-│   │   │   └── roles.ts       # 角色常量
-│   │   ├── prisma/
-│   │   │   ├── schema.prisma  # 数据模型（20+表）
-│   │   │   └── seed.ts        # 种子数据
-│   │   └── index.ts           # 入口文件
+│   │   ├── routes/            # 12个 API 路由模块
+│   │   │   ├── auth.ts, patients.ts, studies.ts
+│   │   │   ├── consultations.ts, devices.ts, reports.ts
+│   │   │   ├── users.ts, hospitals.ts, roles.ts
+│   │   │   ├── notifications.ts, backups.ts, logs.ts
+│   │   ├── lib/               # 权限/鉴权/ACL/Prisma
+│   │   ├── prisma/            # 数据模型（20+表）+ 种子数据
+│   │   └── index.ts
 │   ├── Dockerfile
 │   └── package.json
 ├── frontend/                   # 前端应用
 │   ├── src/
-│   │   ├── pages/             # 页面组件（14个）
-│   │   │   ├── Dashboard.tsx
-│   │   │   ├── Patients.tsx / PatientDetail.tsx
-│   │   │   ├── Studies.tsx
-│   │   │   ├── Consultations.tsx / ConsultationDetail.tsx
-│   │   │   ├── ImagingDevices.tsx
-│   │   │   ├── Reports.tsx
-│   │   │   ├── Users.tsx
-│   │   │   ├── Hospitals.tsx
-│   │   │   ├── Roles.tsx
-│   │   │   ├── AccessRequests.tsx
-│   │   │   ├── SystemLogs.tsx
-│   │   │   └── Login.tsx
+│   │   ├── pages/             # 15个页面
 │   │   ├── components/
-│   │   │   ├── layout/        # 布局组件
-│   │   │   └── ui/            # UI 组件
-│   │   │       ├── UserAvatar.tsx
-│   │   │       ├── PermissionGuard.tsx
-│   │   │       ├── Modal.tsx
-│   │   │       └── ...
-│   │   ├── hooks/useAuth.ts   # 认证钩子
-│   │   ├── i18n/              # 国际化（中/英/法）
-│   │   ├── lib/               # 工具库
-│   │   └── styles/index.css
+│   │   │   ├── layout/        # 侧栏（可收缩）/ 顶部栏 / 通知铃铛
+│   │   │   └── ui/            # 9个通用组件（含 ErrorBoundary）
+│   │   ├── contexts/          # 侧栏状态共享
+│   │   ├── hooks/             # useAuth
+│   │   ├── i18n/              # 中/英/法三语
+│   │   └── lib/               # API工具/权限常量/通知音效
+│   ├── android/               # Capacitor APK 打包
 │   ├── Dockerfile
 │   └── package.json
 ├── deploy/                     # 部署配置
-│   ├── docker-compose.yml     # Docker 编排
-│   ├── orthanc-config.json    # Orthanc PACS 配置
-│   ├── livekit.yaml           # LiveKit 视频服务配置
-│   ├── nginx/
-│   │   └── nginx.conf         # Nginx 反向代理配置
-│   ├── ohif-app-config.js     # OHIF Viewer 配置
-│   ├── ohif-custom.js         # OHIF 品牌定制脚本
-│   └── scripts/setup.sh       # 初始化脚本
-└── docs/                       # 文档
-    ├── DEPLOYMENT.md           # 部署说明
-    ├── CHANGELOG.md            # 操作调试记录
-    ├── PROJECT_SUMMARY.md      # 项目总结
-    └── QUICKSTART.md           # 快速开始
+│   ├── docker-compose.yml     # 8个 Docker 服务
+│   ├── orthanc-config.json    # PACS 配置
+│   ├── livekit.yaml           # 视频服务配置
+│   ├── nginx/nginx.conf       # 反向代理（含 sub_filter）
+│   ├── ohif-app-config.js     # OHIF 配置
+│   ├── ohif-custom.js         # OHIF 品牌定制
+│   └── scripts/               # 部署/初始化脚本
+├── docs/                       # 文档
+│   ├── PROJECT_SUMMARY.md     # 项目总结
+│   ├── DEPLOYMENT.md          # 部署说明
+│   ├── CHANGELOG.md           # 操作调试记录
+│   └── QUICKSTART.md          # 快速开始
+├── deploy.sh                  # 一键部署
+├── build-android.sh           # Android 构建
+└── README.md
 ```
 
 ## 部署指南

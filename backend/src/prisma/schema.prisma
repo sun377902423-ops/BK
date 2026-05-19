@@ -174,7 +174,8 @@ model Patient {
 
 model Study {
   id            Int       @id @default(autoincrement())
-  orthancStudyId String   @unique
+  orthancStudyId  String   @unique
+  studyInstanceUid String?
   patientId     Int
   patient       Patient   @relation(fields: [patientId], references: [id])
   modality      String?
@@ -239,6 +240,7 @@ model Consultation {
   startedAt     DateTime?
   endedAt       DateTime?
   archivedAt    DateTime?
+  vitalSigns    Json?
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
@@ -448,15 +450,49 @@ model ReportTemplate {
   @@map("report_templates")
 }
 
+model BackupConfig {
+  id              Int      @id @default(autoincrement())
+  name            String   @default("default")
+  enabled         Boolean  @default(true)
+  scheduleTime    String   @default("02:00")
+  retentionDays   Int      @default(30)
+  remoteHost      String?
+  remotePort      Int?
+  remoteUser      String?
+  remotePath      String?
+  remotePassword  String?
+  localPath       String   @default("/app/backups")
+  includeOrthanc  Boolean  @default(true)
+  includeUploads  Boolean  @default(true)
+  maxBackupSizeMb Int?
+  lastBackupAt    DateTime?
+  lastBackupSize  Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  records         BackupRecord[]
+
+  @@map("backup_configs")
+}
+
 model BackupRecord {
-  id          Int      @id @default(autoincrement())
-  type        String
-  status      String
-  filePath    String?
-  fileSize    Int?
-  startedAt   DateTime @default(now())
-  completedAt DateTime?
-  createdAt   DateTime @default(now())
+  id            Int       @id @default(autoincrement())
+  configId      Int?
+  config        BackupConfig? @relation(fields: [configId], references: [id])
+  type          String
+  status        String
+  triggerType   String    @default("scheduled")
+  filePath      String?
+  fileSize      Int?
+  previousSize  Int?
+  sizeVerified  Boolean   @default(false)
+  databaseSize  Int?
+  orthancSize   Int?
+  uploadsSize   Int?
+  errorMessage  String?
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  duration      Int?
+  createdAt     DateTime  @default(now())
 
   @@map("backup_records")
 }

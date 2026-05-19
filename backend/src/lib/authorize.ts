@@ -2,33 +2,44 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from './prisma.js';
 import { ROLE_PERMISSIONS, type Permission } from './permissions.js';
 
-const rolePermissionsCache = new Map<number, Permission[]>();
+interface CacheEntry {
+  permissions: Permission[];
+  expiresAt: number;
+}
+
+const PERM_CACHE_TTL_MS = 60_000;
+const rolePermissionsCache = new Map<number, CacheEntry>();
 
 async function getUserPermissions(userId: number, roleName: string): Promise<Permission[]> {
   if (ROLE_PERMISSIONS[roleName]) {
     return ROLE_PERMISSIONS[roleName];
   }
 
+  const now = Date.now();
   const cached = rolePermissionsCache.get(userId);
-  if (cached) return cached;
+  if (cached && cached.expiresAt > now) return cached.permissions;
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { role: true },
   });
 
-  if (!user?.role?.permissions) return [];
+  if (!user?.role?.permissions) {
+    rolePermissionsCache.set(userId, { permissions: [], expiresAt: now + PERM_CACHE_TTL_MS });
+    return [];
+  }
 
   let perms: Permission[];
   try {
     perms = typeof user.role.permissions === 'string'
       ? JSON.parse(user.role.permissions)
-      : user.role.permissions;
+      : (user.role.permissions as unknown as Permission[]);
+    if (!Array.isArray(perms)) perms = [];
   } catch {
     perms = [];
   }
 
-  rolePermissionsCache.set(userId, perms);
+  rolePermissionsCache.set(userId, { permissions: perms, expiresAt: now + PERM_CACHE_TTL_MS });
   return perms;
 }
 

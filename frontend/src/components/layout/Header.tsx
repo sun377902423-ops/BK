@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowRightOnRectangleIcon, LanguageIcon, CameraIcon } from '@heroicons/react/24/outline';
+import { ArrowRightOnRectangleIcon, LanguageIcon, CameraIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/react/24/outline';
 import NotificationBell from './NotificationBell';
 import UserAvatar from '@/components/ui/UserAvatar';
 import api from '@/lib/api';
+import { getNotificationSettings, saveNotificationSettings } from '@/lib/notificationSound';
 
 const languages = [
   { code: 'zh', label: '中文' },
@@ -15,13 +15,13 @@ const languages = [
 ];
 
 const Header: React.FC = () => {
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [langOpen, setLangOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [notifSettings, setNotifSettings] = useState(getNotificationSettings());
   const langRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -35,7 +35,6 @@ const Header: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
   };
 
   const changeLanguage = (code: string) => {
@@ -65,11 +64,8 @@ const Header: React.FC = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       const { avatarUrl } = res.data;
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      storedUser.avatarUrl = avatarUrl;
-      localStorage.setItem('user', JSON.stringify(storedUser));
+      updateUser({ avatarUrl });
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      window.location.reload();
     } catch (err: any) {
       alert(err?.response?.data?.error || t('profile.avatarUploadError'));
     } finally {
@@ -198,6 +194,43 @@ const Header: React.FC = () => {
                   </div>
                 )}
                 <p className="text-xs text-gray-400 pt-1">{t('profile.avatarHint')}</p>
+              </div>
+
+              <div className="border-t border-gray-100 px-4 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-gray-500">{t('profile.notificationSound')}</span>
+                  <button
+                    onClick={() => {
+                      const next = { ...notifSettings, enabled: !notifSettings.enabled };
+                      setNotifSettings(next);
+                      saveNotificationSettings(next);
+                    }}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${notifSettings.enabled ? 'bg-primary-500' : 'bg-gray-300'}`}
+                  >
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${notifSettings.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+                {notifSettings.enabled && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2 text-xs text-gray-400">
+                      {notifSettings.volume < 0.1 ? <SpeakerXMarkIcon className="w-3.5 h-3.5" /> : <SpeakerWaveIcon className="w-3.5 h-3.5" />}
+                      <span>{t('profile.volume')}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={notifSettings.volume}
+                      onChange={(e) => {
+                        const next = { ...notifSettings, volume: parseFloat(e.target.value), enabled: true };
+                        setNotifSettings(next);
+                        saveNotificationSettings(next);
+                      }}
+                      className="w-28 h-1.5"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-gray-100 px-4 py-3">

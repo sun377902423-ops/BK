@@ -18,11 +18,25 @@ interface AuthState {
   isLoading: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+  updateUser: (patch: Partial<User>) => void;
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (...permissions: string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
+
+function readStoredUser(): User | null {
+  const storedUser = localStorage.getItem('user');
+  const token = localStorage.getItem('token');
+  if (!storedUser || !token) return null;
+  try {
+    return JSON.parse(storedUser);
+  } catch {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    return null;
+  }
+}
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -30,18 +44,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    if (storedUser && token) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-      }
-    }
+    setUser(readStoredUser());
     setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'token' || e.key === 'user' || e.key === null) {
+        setUser(readStoredUser());
+      }
+    };
+    const handleAuthExpired = () => {
+      setUser(null);
+      navigate('/login', { replace: true });
+    };
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('auth:expired', handleAuthExpired as EventListener);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('auth:expired', handleAuthExpired as EventListener);
+    };
+  }, [navigate]);
 
   const login = useCallback((token: string, userData: User) => {
     localStorage.setItem('token', token);
@@ -53,8 +76,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-    navigate('/login');
+    navigate('/login', { replace: true });
   }, [navigate]);
+
+  const updateUser = useCallback((patch: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const merged = { ...prev, ...patch };
+      try {
+        localStorage.setItem('user', JSON.stringify(merged));
+      } catch {}
+      return merged;
+    });
+  }, []);
 
   const hasPermission = useCallback((permission: string) => {
     if (!user) return false;
@@ -72,10 +106,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const value: AuthState = {
     user,
-    isAuthenticated: !!user && !!localStorage.getItem('token'),
+    isAuthenticated: !!user,
     isLoading,
     login,
     logout,
+    updateUser,
     hasPermission,
     hasAnyPermission,
   };

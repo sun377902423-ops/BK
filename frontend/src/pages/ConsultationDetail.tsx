@@ -7,6 +7,8 @@ import {
   VideoConference,
 } from '@livekit/components-react';
 import '@livekit/components-styles';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { playMessageSound } from '@/lib/notificationSound';
 import {
   ArrowLeftIcon,
   VideoCameraIcon,
@@ -58,6 +60,7 @@ interface Message {
 interface Study {
   id: number;
   orthancStudyId: string;
+  studyInstanceUid?: string;
   modality: string;
   studyDate: string;
   studyDescription: string;
@@ -87,6 +90,7 @@ interface Consultation {
   createdBy: { id: number; realName: string; username: string };
   participants: Participant[];
   messages: Message[];
+  vitalSigns?: Record<string, string> | null;
 }
 
 interface User {
@@ -108,15 +112,20 @@ const ConsultationDetail: React.FC = () => {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [selectedRoles, setSelectedRoles] = useState<Record<number, string>>({});
   const [messageInput, setMessageInput] = useState('');
-  const [activeRightTab, setActiveRightTab] = useState<'info' | 'chat'>('info');
+  const [activeRightTab, setActiveRightTab] = useState<'info' | 'chat' | 'vitals'>('info');
+  const [unreadCount, setUnreadCount] = useState(0);
+  const lastMessageCountRef = useRef(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [imageViewerExpanded, setImageViewerExpanded] = useState(false);
+  const [resolvedOhifUrl, setResolvedOhifUrl] = useState<string | null>(null);
   const [videoToken, setVideoToken] = useState('');
   const [videoConnecting, setVideoConnecting] = useState(false);
   const [videoError, setVideoError] = useState('');
   const [videoConnected, setVideoConnected] = useState(false);
   const videoTokenRef = useRef('');
+  const [editVitalSigns, setEditVitalSigns] = useState<Record<string, string> | null>(null);
+  const [vitalSaved, setVitalSaved] = useState(false);
 
   const { data: consultation, isLoading } = useQuery<Consultation>({
     queryKey: ['consultation', id],
@@ -163,6 +172,11 @@ const ConsultationDetail: React.FC = () => {
       setSelectedRoles({});
       setAddParticipantOpen(false);
     },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error || t('common.submit') + ' ' + t('common.failed');
+      setErrorMessage(msg);
+      setTimeout(() => setErrorMessage(''), 5000);
+    },
   });
 
   const respondMutation = useMutation({
@@ -196,6 +210,18 @@ const ConsultationDetail: React.FC = () => {
     },
   });
 
+  const saveVitalsMutation = useMutation({
+    mutationFn: async (vitalSigns: Record<string, string>) => {
+      const res = await api.put(`/api/consultations/${id}/vitals`, { vitalSigns });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consultation', id] });
+      setVitalSaved(true);
+      setTimeout(() => setVitalSaved(false), 2500);
+    },
+  });
+
   const fetchVideoToken = useCallback(async () => {
     if (!currentUser) return;
     try {
@@ -222,11 +248,32 @@ const ConsultationDetail: React.FC = () => {
       setVideoError('');
       setVideoConnected(false);
     }
-  }, [consultation?.status]);
+  }, [consultation?.status, fetchVideoToken]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [consultation?.messages]);
+
+  useEffect(() => {
+    if (!consultation?.messages) return;
+    const currentCount = consultation.messages.length;
+    if (lastMessageCountRef.current === 0) {
+      lastMessageCountRef.current = currentCount;
+      return;
+    }
+    if (currentCount > lastMessageCountRef.current && activeRightTab !== 'chat') {
+      setUnreadCount((prev) => prev + (currentCount - lastMessageCountRef.current));
+      playMessageSound();
+    }
+    lastMessageCountRef.current = currentCount;
+  }, [consultation?.messages, activeRightTab]);
+
+  const handleTabChange = (tab: 'info' | 'chat' | 'vitals') => {
+    setActiveRightTab(tab);
+    if (tab === 'chat') {
+      setUnreadCount(0);
+    }
+  };
 
   const handleStartConsultation = () => {
     statusMutation.mutate({ status: 'IN_PROGRESS' });
@@ -332,6 +379,24 @@ const ConsultationDetail: React.FC = () => {
     return map[status] || 'bg-gray-300';
   };
 
+  useEffect(() => {
+    if (!consultation?.study) { setResolvedOhifUrl(null); return; }
+    const study = consultation.study;
+    if (study.studyInstanceUid) {
+      setResolvedOhifUrl(`/ohif/viewer/${encodeURIComponent(study.studyInstanceUid)}`);
+      return;
+    }
+    let cancelled = false;
+    api.get(`/api/studies/${study.id}/ohif-url`).then(res => {
+      if (cancelled) return;
+      if (res.data?.url) setResolvedOhifUrl(res.data.url);
+      else setResolvedOhifUrl(null);
+    }).catch(() => {
+      if (!cancelled) setResolvedOhifUrl(null);
+    });
+    return () => { cancelled = true; };
+  }, [consultation?.study?.id, consultation?.study?.studyInstanceUid]);
+
   if (isLoading) return <LoadingSpinner />;
   if (!consultation) {
     return (
@@ -343,9 +408,7 @@ const ConsultationDetail: React.FC = () => {
     );
   }
 
-  const ohifUrl = consultation.study
-    ? `/ohif/viewer/${consultation.study.orthancStudyId}`
-    : '';
+  const ohifUrl = resolvedOhifUrl || '';
 
   const renderVideoArea = () => (
     <div className="flex-1 relative bg-gray-900">
@@ -445,6 +508,8 @@ const ConsultationDetail: React.FC = () => {
         className="flex-1 w-full border-0"
         title="OHIF Viewer"
         allow="clipboard-read; clipboard-write"
+        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads"
+        referrerPolicy="same-origin"
       />
     </div>
   );
@@ -454,7 +519,9 @@ const ConsultationDetail: React.FC = () => {
       return (
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           <div className={`flex-1 flex flex-col min-h-0 ${showImageViewer && !imageViewerExpanded ? 'lg:w-1/2' : ''}`}>
-            {renderVideoArea()}
+            <ErrorBoundary fallback={<div className="flex-1 flex items-center justify-center bg-gray-900 text-gray-400 text-sm">{t('consultation.videoUnavailable')}</div>}>
+              {renderVideoArea()}
+            </ErrorBoundary>
           </div>
           {showImageViewer && hasStudy && !imageViewerExpanded && (
             <div className="lg:w-1/2 flex flex-col border-l border-gray-700 min-h-0">
@@ -462,7 +529,7 @@ const ConsultationDetail: React.FC = () => {
             </div>
           )}
           {showImageViewer && hasStudy && imageViewerExpanded && (
-            <div className="fixed inset-0 z-50 bg-black">
+            <div className="fixed inset-0 z-50 bg-black flex flex-col">
               {renderImageViewer()}
             </div>
           )}
@@ -693,7 +760,7 @@ const ConsultationDetail: React.FC = () => {
         <div className="w-80 bg-white border-l border-gray-200 flex flex-col overflow-hidden">
           <div className="flex border-b border-gray-200">
             <button
-              onClick={() => setActiveRightTab('info')}
+              onClick={() => handleTabChange('info')}
               className={`flex-1 py-2.5 text-sm font-medium text-center ${
                 activeRightTab === 'info' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-500 hover:text-gray-700'
               }`}
@@ -701,12 +768,25 @@ const ConsultationDetail: React.FC = () => {
               {t('consultation.info')}
             </button>
             <button
-              onClick={() => setActiveRightTab('chat')}
-              className={`flex-1 py-2.5 text-sm font-medium text-center ${
+              onClick={() => handleTabChange('chat')}
+              className={`flex-1 py-2.5 text-sm font-medium text-center relative ${
                 activeRightTab === 'chat' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               {t('consultation.chat')}
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => handleTabChange('vitals')}
+              className={`flex-1 py-2.5 text-sm font-medium text-center ${
+                activeRightTab === 'vitals' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {t('consultation.vitalSigns')}
             </button>
           </div>
 
@@ -884,6 +964,55 @@ const ConsultationDetail: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          )}
+          {activeRightTab === 'vitals' && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+                  <ClipboardDocumentListIcon className="w-4 h-4 mr-1.5" />
+                  {t('consultation.vitalSigns')}
+                </h3>
+                {vitalSaved && (
+                  <span className="text-xs text-green-600 font-medium">{t('common.saved')}</span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'bloodPressure', label: t('consultation.bloodPressure'), placeholder: '120/80' },
+                  { key: 'heartRate', label: t('consultation.heartRate'), placeholder: '72' },
+                  { key: 'temperature', label: t('consultation.temperature'), placeholder: '36.5' },
+                  { key: 'respiratoryRate', label: t('consultation.respiratoryRate'), placeholder: '16' },
+                  { key: 'oxygenSaturation', label: t('consultation.oxygenSaturation'), placeholder: '98' },
+                  { key: 'bloodSugar', label: t('consultation.bloodSugar'), placeholder: '5.6' },
+                  { key: 'weight', label: t('consultation.weight'), placeholder: '70' },
+                  { key: 'height', label: t('consultation.height'), placeholder: '175' },
+                ].map((f) => (
+                  <div key={f.key}>
+                    <label className="block text-xs font-medium text-gray-600 mb-0.5">{f.label}</label>
+                    <input
+                      type="text"
+                      value={(editVitalSigns ?? consultation?.vitalSigns ?? {})[f.key] || ''}
+                      onChange={(e) => {
+                        const base = editVitalSigns ?? { ...(consultation?.vitalSigns ?? {}) };
+                        setEditVitalSigns({ ...base, [f.key]: e.target.value });
+                      }}
+                      className="input text-sm"
+                      placeholder={f.placeholder}
+                    />
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  const data = editVitalSigns ?? { ...(consultation?.vitalSigns ?? {}) };
+                  saveVitalsMutation.mutate(data);
+                }}
+                disabled={saveVitalsMutation.isPending}
+                className="w-full py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50"
+              >
+                {saveVitalsMutation.isPending ? t('common.saving') : t('common.save')}
+              </button>
             </div>
           )}
         </div>

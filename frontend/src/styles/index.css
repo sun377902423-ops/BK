@@ -14,6 +14,36 @@
   body {
     @apply bg-gray-50 text-gray-900 antialiased;
   }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button, a, [role="button"], input, select, textarea {
+    min-height: 44px;
+  }
+
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  @media (pointer: coarse) {
+    .btn, button[class*="btn"], a[class*="btn"] {
+      @apply px-5 py-3 text-base;
+    }
+
+    .btn-sm {
+      @apply px-4 py-2 text-sm;
+    }
+
+    .input, .select {
+      @apply px-4 py-3 text-base;
+    }
+
+    table td, table th {
+      @apply px-4 py-4;
+    }
+  }
 }
 
 @layer components {

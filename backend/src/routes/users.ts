@@ -159,7 +159,7 @@ export async function userRoutes(fastify: FastifyInstance) {
 
   fastify.put('/users/profile', {
     preHandler: [fastify.authenticate],
-  }, async (request) => {
+  }, async (request, reply) => {
     const userId = (request.user as any).userId;
     const data = request.body as any;
     const updateData: any = {};
@@ -167,11 +167,14 @@ export async function userRoutes(fastify: FastifyInstance) {
     if (data.email !== undefined) updateData.email = data.email;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.oldPassword && data.newPassword) {
+      if (typeof data.newPassword !== 'string' || data.newPassword.length < 8) {
+        return reply.status(400).send({ error: '新密码长度不能少于 8 位' });
+      }
       const user = await prisma.user.findUnique({ where: { id: userId } });
-      if (!user) return { error: '用户不存在' };
+      if (!user) return reply.status(404).send({ error: '用户不存在' });
       const valid = await bcrypt.compare(data.oldPassword, user.passwordHash);
-      if (!valid) return { error: '原密码错误' };
-      updateData.passwordHash = await bcrypt.hash(data.newPassword, 10);
+      if (!valid) return reply.status(401).send({ error: '原密码错误' });
+      updateData.passwordHash = await bcrypt.hash(data.newPassword, 12);
     }
     const user = await prisma.user.update({
       where: { id: userId },

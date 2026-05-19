@@ -48,6 +48,12 @@ export const PERMISSIONS = {
   DEVICE_CREATE: 'device:create',
   DEVICE_UPDATE: 'device:update',
   DEVICE_DELETE: 'device:delete',
+
+  BACKUP_LIST: 'backup:list',
+  BACKUP_CREATE: 'backup:create',
+  BACKUP_RESTORE: 'backup:restore',
+  BACKUP_CONFIG: 'backup:config',
+  BACKUP_DELETE: 'backup:delete',
 } as const;
 
 export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];

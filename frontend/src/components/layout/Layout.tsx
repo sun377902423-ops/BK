@@ -2,10 +2,12 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 
-const Layout: React.FC = () => {
+const LayoutInner: React.FC = () => {
+  const { collapsed } = useSidebar();
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className={`flex h-screen bg-gray-50 transition-all duration-300 ${collapsed ? 'sidebar-collapsed' : ''}`}>
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
@@ -14,6 +16,14 @@ const Layout: React.FC = () => {
         </main>
       </div>
     </div>
+  );
+};
+
+const Layout: React.FC = () => {
+  return (
+    <SidebarProvider>
+      <LayoutInner />
+    </SidebarProvider>
   );
 };
 

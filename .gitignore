@@ -40,6 +40,16 @@ docker-compose.override.yml
 
 # SSL certificates (do not commit)
 deploy/nginx/ssl/
+deploy/.env
+deploy/.env.local
+
+# Gradle / Android build cache
+gradle-cache/
+dev-tools/
+
+# Android APK
+*.apk
+*.zip
 
 # Uploads
 uploads/

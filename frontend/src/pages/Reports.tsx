@@ -57,7 +57,34 @@ interface ReportContent {
   findings: string;
   impression: string;
   recommendations: string;
+  vitalSigns?: {
+    bloodPressure: string;
+    heartRate: string;
+    temperature: string;
+    respiratoryRate: string;
+    oxygenSaturation: string;
+    bloodSugar: string;
+    weight: string;
+    height: string;
+  };
+  ecg?: {
+    result: string;
+    heartRate: string;
+    prInterval: string;
+    qrsDuration: string;
+    qtInterval: string;
+    interpretation: string;
+  };
 }
+
+const emptyVitalSigns = {
+  bloodPressure: '', heartRate: '', temperature: '', respiratoryRate: '',
+  oxygenSaturation: '', bloodSugar: '', weight: '', height: '',
+};
+
+const emptyEcg = {
+  result: '', heartRate: '', prInterval: '', qrsDuration: '', qtInterval: '', interpretation: '',
+};
 
 const emptyContent: ReportContent = { findings: '', impression: '', recommendations: '' };
 
@@ -71,11 +98,164 @@ const parseContent = (content: Record<string, unknown> | string): ReportContent 
     }
     return emptyContent;
   }
+  const c = content as Record<string, unknown>;
   return {
-    findings: (content as Record<string, unknown>).findings as string || '',
-    impression: (content as Record<string, unknown>).impression as string || '',
-    recommendations: (content as Record<string, unknown>).recommendations as string || '',
+    findings: (c.findings as string) || '',
+    impression: (c.impression as string) || '',
+    recommendations: (c.recommendations as string) || '',
+    vitalSigns: (c.vitalSigns as ReportContent['vitalSigns']) || undefined,
+    ecg: (c.ecg as ReportContent['ecg']) || undefined,
   };
+};
+
+interface VitalSignsFormProps {
+  value: ReportContent['vitalSigns'];
+  onChange: (v: ReportContent['vitalSigns']) => void;
+  t: (key: string) => string;
+}
+
+const VitalSignsForm: React.FC<VitalSignsFormProps> = ({ value, onChange, t }) => {
+  const v = value || emptyVitalSigns;
+  const set = (field: string, val: string) => onChange({ ...v, [field]: val });
+  const fields = [
+    { key: 'bloodPressure', label: t('report.bloodPressure'), placeholder: '120/80' },
+    { key: 'heartRate', label: t('report.heartRate'), placeholder: '72' },
+    { key: 'temperature', label: t('report.temperature'), placeholder: '36.5' },
+    { key: 'respiratoryRate', label: t('report.respiratoryRate'), placeholder: '16' },
+    { key: 'oxygenSaturation', label: t('report.oxygenSaturation'), placeholder: '98' },
+    { key: 'bloodSugar', label: t('report.bloodSugar'), placeholder: '5.6' },
+    { key: 'weight', label: t('report.weight'), placeholder: '70' },
+    { key: 'height', label: t('report.height'), placeholder: '175' },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {fields.map((f) => (
+        <div key={f.key}>
+          <label className="block text-xs font-medium text-gray-600 mb-0.5">{f.label}</label>
+          <input
+            type="text"
+            value={(v as any)[f.key] || ''}
+            onChange={(e) => set(f.key, e.target.value)}
+            className="input text-sm"
+            placeholder={f.placeholder}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+interface VitalSignsViewProps {
+  value: ReportContent['vitalSigns'];
+  t: (key: string) => string;
+}
+
+const VitalSignsView: React.FC<VitalSignsViewProps> = ({ value, t }) => {
+  if (!value) return null;
+  const labels: Record<string, string> = {
+    bloodPressure: t('report.bloodPressure'),
+    heartRate: t('report.heartRate'),
+    temperature: t('report.temperature'),
+    respiratoryRate: t('report.respiratoryRate'),
+    oxygenSaturation: t('report.oxygenSaturation'),
+    bloodSugar: t('report.bloodSugar'),
+    weight: t('report.weight'),
+    height: t('report.height'),
+  };
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {Object.entries(labels).map(([key, label]) => {
+        const val = (value as any)[key];
+        if (!val) return null;
+        return (
+          <div key={key} className="flex items-center justify-between bg-gray-50 rounded px-3 py-1.5">
+            <span className="text-xs text-gray-500">{label}</span>
+            <span className="text-sm font-medium text-gray-900">{val}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+interface EcgFormProps {
+  value: ReportContent['ecg'];
+  onChange: (v: ReportContent['ecg']) => void;
+  t: (key: string) => string;
+}
+
+const EcgForm: React.FC<EcgFormProps> = ({ value, onChange, t }) => {
+  const v = value || emptyEcg;
+  const set = (field: string, val: string) => onChange({ ...v, [field]: val });
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-0.5">{t('report.ecgResult')}</label>
+        <textarea
+          value={v.result}
+          onChange={(e) => set('result', e.target.value)}
+          className="input text-sm min-h-[60px]"
+          rows={2}
+          placeholder={t('report.ecgResultPlaceholder')}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-0.5">{t('report.ecgHeartRate')}</label>
+          <input type="text" value={v.heartRate} onChange={(e) => set('heartRate', e.target.value)} className="input text-sm" placeholder="bpm" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-0.5">{t('report.ecgPrInterval')}</label>
+          <input type="text" value={v.prInterval} onChange={(e) => set('prInterval', e.target.value)} className="input text-sm" placeholder={t('report.ecgSeconds')} />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-0.5">{t('report.ecgQrsDuration')}</label>
+          <input type="text" value={v.qrsDuration} onChange={(e) => set('qrsDuration', e.target.value)} className="input text-sm" placeholder={t('report.ecgSeconds')} />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-0.5">{t('report.ecgQtInterval')}</label>
+          <input type="text" value={v.qtInterval} onChange={(e) => set('qtInterval', e.target.value)} className="input text-sm" placeholder={t('report.ecgSeconds')} />
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-0.5">{t('report.ecgInterpretation')}</label>
+        <textarea
+          value={v.interpretation}
+          onChange={(e) => set('interpretation', e.target.value)}
+          className="input text-sm min-h-[60px]"
+          rows={2}
+        />
+      </div>
+    </div>
+  );
+};
+
+interface EcgViewProps {
+  value: ReportContent['ecg'];
+  t: (key: string) => string;
+}
+
+const EcgView: React.FC<EcgViewProps> = ({ value, t }) => {
+  if (!value) return null;
+  const items: [string, string][] = [
+    [t('report.ecgResult'), value.result],
+    [t('report.ecgHeartRate'), value.heartRate],
+    [t('report.ecgPrInterval'), value.prInterval],
+    [t('report.ecgQrsDuration'), value.qrsDuration],
+    [t('report.ecgQtInterval'), value.qtInterval],
+    [t('report.ecgInterpretation'), value.interpretation],
+  ].filter(([, v]) => v) as [string, string][];
+  if (items.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      {items.map(([label, val]) => (
+        <div key={label} className="flex flex-col bg-gray-50 rounded px-3 py-1.5">
+          <span className="text-xs text-gray-500">{label}</span>
+          <span className="text-sm font-medium text-gray-900 whitespace-pre-wrap">{val}</span>
+        </div>
+      ))}
+    </div>
+  );
 };
 
 const Reports: React.FC = () => {
@@ -429,6 +609,20 @@ const Reports: React.FC = () => {
             </div>
           </div>
 
+          <details className="border border-gray-200 rounded-lg">
+            <summary className="px-4 py-2 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50">{t('report.vitalSigns')}</summary>
+            <div className="p-4 border-t border-gray-200">
+              <VitalSignsForm value={createContent.vitalSigns} onChange={(v) => setCreateContent({ ...createContent, vitalSigns: v })} t={t} />
+            </div>
+          </details>
+
+          <details className="border border-gray-200 rounded-lg">
+            <summary className="px-4 py-2 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50">{t('report.ecg')}</summary>
+            <div className="p-4 border-t border-gray-200">
+              <EcgForm value={createContent.ecg} onChange={(v) => setCreateContent({ ...createContent, ecg: v })} t={t} />
+            </div>
+          </details>
+
           <div className="flex justify-end space-x-3 pt-4 border-t">
             <button
               type="button"
@@ -500,6 +694,18 @@ const Reports: React.FC = () => {
                   </div>
                 </div>
               </div>
+              {content.vitalSigns && (
+                <div className="border-t border-gray-200 pt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('report.vitalSigns')}</h4>
+                  <VitalSignsView value={content.vitalSigns} t={t} />
+                </div>
+              )}
+              {content.ecg && (
+                <div className="border-t border-gray-200 pt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('report.ecg')}</h4>
+                  <EcgView value={content.ecg} t={t} />
+                </div>
+              )}
             </div>
           );
         })()}
@@ -539,6 +745,18 @@ const Reports: React.FC = () => {
               rows={4}
             />
           </div>
+          <details className="border border-gray-200 rounded-lg">
+            <summary className="px-4 py-2 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50">{t('report.vitalSigns')}</summary>
+            <div className="p-4 border-t border-gray-200">
+              <VitalSignsForm value={editContent.vitalSigns} onChange={(v) => setEditContent({ ...editContent, vitalSigns: v })} t={t} />
+            </div>
+          </details>
+          <details className="border border-gray-200 rounded-lg">
+            <summary className="px-4 py-2 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50">{t('report.ecg')}</summary>
+            <div className="p-4 border-t border-gray-200">
+              <EcgForm value={editContent.ecg} onChange={(v) => setEditContent({ ...editContent, ecg: v })} t={t} />
+            </div>
+          </details>
           <div className="flex justify-end space-x-3 pt-4 border-t">
             <button type="button" onClick={() => setEditReport(null)} className="btn-secondary">{t('common.cancel')}</button>
             <button type="submit" disabled={updateMutation.isPending} className="btn-primary disabled:opacity-50">
