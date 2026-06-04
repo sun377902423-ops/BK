@@ -32,25 +32,14 @@ const NotificationBell: React.FC = () => {
   const lastSeenIdRef = useRef<number>(0);
   const initializedRef = useRef(false);
 
-  const { data: unreadCount } = useQuery<{ count: number }>({
-    queryKey: ['notifications', 'unread-count'],
-    queryFn: async () => {
-      const res = await api.get('/api/notifications/unread-count');
-      return res.data;
-    },
-    refetchInterval: 5000,
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: true,
-  });
-
   const { data: notifications } = useQuery<Notification[]>({
     queryKey: ['notifications'],
     queryFn: async () => {
       const res = await api.get('/api/notifications', { params: { unreadOnly: 'true' } });
       return res.data;
     },
-    refetchInterval: 5000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 10000,
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
   });
 
@@ -60,7 +49,6 @@ const NotificationBell: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
   });
 
@@ -70,7 +58,6 @@ const NotificationBell: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
   });
 
@@ -99,7 +86,7 @@ const NotificationBell: React.FC = () => {
     return 'bg-gray-100 text-gray-600';
   };
 
-  const count = unreadCount?.count || 0;
+  const count = notifications?.filter((n) => !n.isRead).length || 0;
 
   useEffect(() => {
     if (count > prevCountRef.current && prevCountRef.current !== 0) {

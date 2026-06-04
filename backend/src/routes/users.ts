@@ -148,8 +148,9 @@ export async function userRoutes(fastify: FastifyInstance) {
     });
 
     if (existingUser?.avatarUrl) {
-      const oldPath = path.join('/app', existingUser.avatarUrl.replace(/^\//, ''));
-      if (fs.existsSync(oldPath) && oldPath.startsWith(UPLOAD_DIR)) {
+      const oldPath = path.resolve('/app', existingUser.avatarUrl.replace(/^\//, ''));
+      const resolvedUploadDir = path.resolve(UPLOAD_DIR);
+      if (oldPath.startsWith(resolvedUploadDir) && fs.existsSync(oldPath)) {
         try { fs.unlinkSync(oldPath); } catch {}
       }
     }

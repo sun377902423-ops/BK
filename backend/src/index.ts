@@ -190,6 +190,19 @@ fastify.get('/api/dashboard/pending', { preHandler: [fastify.authenticate] }, as
   return { pendingConsultations, draftReports };
 });
 
+// 全局错误处理
+fastify.setErrorHandler(async (error, request, reply) => {
+  const statusCode = error.statusCode || 500;
+  const message = statusCode === 500 ? '服务器内部错误' : error.message;
+  if (statusCode === 500) {
+    console.error(`[Error] ${request.method} ${request.url}:`, error);
+  }
+  reply.status(statusCode).send({
+    error: message,
+    statusCode,
+  });
+});
+
 const start = async () => {
   try {
     const port = parseInt(process.env.PORT || '3001', 10);
@@ -198,9 +211,9 @@ const start = async () => {
 
     setTimeout(() => startupBackupCheck(), 10000);
 
-    setInterval(() => scheduleBackupCheck(), 60000);
+    const backupTimer = setInterval(() => scheduleBackupCheck(), 60000);
 
-    setInterval(async () => {
+    const syncTimer = setInterval(async () => {
       try {
         const result = await syncAllOrthancStudies();
         if (result.synced > 0) {
@@ -210,6 +223,12 @@ const start = async () => {
         console.error('Auto-sync failed:', e);
       }
     }, 5 * 60 * 1000);
+
+    fastify.addHook('onClose', (_instance, done) => {
+      clearInterval(backupTimer);
+      clearInterval(syncTimer);
+      done();
+    });
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

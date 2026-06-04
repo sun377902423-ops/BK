@@ -202,13 +202,20 @@ export async function patientRoutes(fastify: FastifyInstance) {
     });
     if (existing) return reply.status(400).send({ error: '已存在待审批的申请' });
 
-    const accessRequest = await prisma.patientAccessRequest.create({
-      data: {
-        patientId: parseInt(id),
-        requesterId: userId,
-        reason: data.reason || '',
-      },
-      include: { patient: { select: { id: true, name: true, patientId: true } }, requester: { select: { id: true, realName: true, username: true } } },
+    const accessRequest = await prisma.$transaction(async (tx) => {
+      const dup = await tx.patientAccessRequest.findFirst({
+        where: { patientId: parseInt(id), requesterId: userId, status: 'PENDING' },
+      });
+      if (dup) throw new Error('已存在待审批的申请');
+
+      return tx.patientAccessRequest.create({
+        data: {
+          patientId: parseInt(id),
+          requesterId: userId,
+          reason: data.reason || '',
+        },
+        include: { patient: { select: { id: true, name: true, patientId: true } }, requester: { select: { id: true, realName: true, username: true } } },
+      });
     });
     return accessRequest;
   });
@@ -255,15 +262,20 @@ export async function patientRoutes(fastify: FastifyInstance) {
     }
     if (accessRequest.status !== 'PENDING') return reply.status(400).send({ error: '申请已处理' });
 
-    const updated = await prisma.patientAccessRequest.update({
-      where: { id: parseInt(id) },
-      data: { status: 'APPROVED', reviewedById: userId, reviewedAt: new Date() },
-    });
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.patientAccessRequest.updateMany({
+        where: { id: parseInt(id), status: 'PENDING' },
+        data: { status: 'APPROVED', reviewedById: userId, reviewedAt: new Date() },
+      });
+      if (result.count === 0) throw new Error('申请已处理');
 
-    await prisma.patientAccess.upsert({
-      where: { patientId_userId: { patientId: accessRequest.patientId, userId: accessRequest.requesterId } },
-      create: { patientId: accessRequest.patientId, userId: accessRequest.requesterId, grantedById: userId, accessType: 'GRANTED' },
-      update: { accessType: 'GRANTED', grantedById: userId },
+      await tx.patientAccess.upsert({
+        where: { patientId_userId: { patientId: accessRequest.patientId, userId: accessRequest.requesterId } },
+        create: { patientId: accessRequest.patientId, userId: accessRequest.requesterId, grantedById: userId, accessType: 'GRANTED' },
+        update: { accessType: 'GRANTED', grantedById: userId },
+      });
+
+      return tx.patientAccessRequest.findUnique({ where: { id: parseInt(id) } });
     });
 
     return updated;
