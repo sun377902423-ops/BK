@@ -35,6 +35,10 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/src/prisma ./src/prisma
 
+RUN mkdir -p /app/uploads/avatars /app/backups && chown -R node:node /app
+
+USER node
+
 EXPOSE 3001
 
 CMD ["node", "dist/index.js"]

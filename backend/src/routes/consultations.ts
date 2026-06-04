@@ -590,7 +590,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/consultations/:id/vitals', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, authorize(PERMISSIONS.CONSULTATION_MANAGE), requireConsultationMember],
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const consultationId = parseInt(id);

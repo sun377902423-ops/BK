@@ -52,6 +52,7 @@ const App: React.FC = () => {
     installAudioUnlock();
   }, []);
   return (
+    <ErrorBoundary>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
@@ -60,7 +61,7 @@ const App: React.FC = () => {
         <Route path="/patients/:id" element={<AuthorizedRoute permissions={[PERMISSIONS.PATIENT_READ]}><PatientDetail /></AuthorizedRoute>} />
         <Route path="/studies" element={<AuthorizedRoute permissions={[PERMISSIONS.STUDY_LIST]}><Studies /></AuthorizedRoute>} />
         <Route path="/consultations" element={<AuthorizedRoute permissions={[PERMISSIONS.CONSULTATION_LIST]}><Consultations /></AuthorizedRoute>} />
-        <Route path="/consultations/:id" element={<AuthorizedRoute permissions={[PERMISSIONS.CONSULTATION_LIST]}><ErrorBoundary><ConsultationDetail /></ErrorBoundary></AuthorizedRoute>} />
+        <Route path="/consultations/:id" element={<AuthorizedRoute permissions={[PERMISSIONS.CONSULTATION_LIST]}><ConsultationDetail /></AuthorizedRoute>} />
         <Route path="/users" element={<AuthorizedRoute permissions={[PERMISSIONS.USER_LIST]}><Users /></AuthorizedRoute>} />
         <Route path="/hospitals" element={<AuthorizedRoute permissions={[PERMISSIONS.HOSPITAL_LIST]}><Hospitals /></AuthorizedRoute>} />
         <Route path="/reports" element={<AuthorizedRoute permissions={[PERMISSIONS.REPORT_LIST]}><Reports /></AuthorizedRoute>} />
@@ -71,6 +72,7 @@ const App: React.FC = () => {
         <Route path="/backup" element={<AuthorizedRoute permissions={[PERMISSIONS.BACKUP_LIST]}><BackupManagement /></AuthorizedRoute>} />
       </Route>
     </Routes>
+    </ErrorBoundary>
   );
 };
 

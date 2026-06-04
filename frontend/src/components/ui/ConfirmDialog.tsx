@@ -41,10 +41,7 @@ export default function ConfirmDialog({
         <button
           type="button"
           className={`rounded-lg px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${confirmBtnClass}`}
-          onClick={() => {
-            onConfirm();
-            onClose();
-          }}
+          onClick={onConfirm}
         >
           {resolvedConfirmText}
         </button>

@@ -103,7 +103,7 @@ const NotificationBell: React.FC = () => {
 
   useEffect(() => {
     if (count > prevCountRef.current && prevCountRef.current !== 0) {
-      playMessageSound();
+      // 音效由下方通知列表的 useEffect 统一触发，避免重复播放
     }
     prevCountRef.current = count;
   }, [count]);

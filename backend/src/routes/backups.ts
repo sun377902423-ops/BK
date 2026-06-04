@@ -8,6 +8,8 @@ import path from 'path';
 
 const BACKUP_DIR = path.resolve(process.env.BACKUP_DIR || '/app/backups');
 
+let backupRunning = false;
+
 function dbUrlFromEnv(): URL | null {
   const raw = process.env.DATABASE_URL;
   if (!raw) return null;
@@ -65,6 +67,11 @@ function sanitizeBackupConfigForResponse<T extends { remotePassword?: string | n
 }
 
 async function performBackup(config: any, triggerType: string): Promise<any> {
+  if (backupRunning) {
+    console.warn('[Backup] 上一个备份仍在进行，跳过本次');
+    return null;
+  }
+  backupRunning = true;
   const startedAt = new Date();
   const dateStr = formatDate(startedAt);
   const timestamp = formatDateTime(startedAt);
@@ -204,8 +211,10 @@ async function performBackup(config: any, triggerType: string): Promise<any> {
       }
     }
 
+    backupRunning = false;
     return { success: true, recordId: record.id, fileSize, sizeVerified };
   } catch (error: any) {
+    backupRunning = false;
     const completedAt = new Date();
     const duration = Math.round((completedAt.getTime() - startedAt.getTime()) / 1000);
 
